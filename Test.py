@@ -145,7 +145,7 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
                 pass
 
             if enable_visualize_check:
-                visualize_check(inputs, labels, model, class_names, num_images=3,
+                visualize_check(inputs, labels, model, class_names, num_images=-1,
                                 pic_name='Visual_' + str(epoch_idx) + '_I_' + str(index + 1),
                                 draw_path=draw_path, writer=writer)
 
