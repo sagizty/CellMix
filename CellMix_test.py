@@ -174,7 +174,7 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
                 if Augmentation is not None:
                     describe = '_fix_position_ratio_' + str(fix_position_ratio) \
                                + '_puzzle_patch_size_' + str(puzzle_patch_size)
-                    visualize_check(Aug_inputs, GT_long_labels, model, class_names, num_images=3,
+                    visualize_check(Aug_inputs, GT_long_labels, model, class_names, num_images=-1,
                                     pic_name=augmentation_name + describe +
                                              'Visual_' + str(epoch_idx) + '_I_' + str(index + 1),
                                     draw_path=draw_path, writer=writer)
