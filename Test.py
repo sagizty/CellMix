@@ -288,15 +288,16 @@ def main(args):
     batch_size = args.batch_size  # 10
     criterion = nn.CrossEntropyLoss()
 
-    # skip minibatch
-    check_minibatch = args.check_minibatch if args.check_minibatch is not None else 80 // batch_size
-
     # Data Augmentation is not used in validating or testing
     data_transforms = data_augmentation(data_augmentation_mode, edge_size=edge_size)
 
     # test setting is the same as the validate dataset's setting
     test_datasets = torchvision.datasets.ImageFolder(test_dataroot, data_transforms['val'])
     test_dataset_size = len(test_datasets)
+    # skip minibatch none to draw 20 figs
+    check_minibatch = args.check_minibatch if args.check_minibatch is not None else test_dataset_size // (
+            20 * batch_size)
+    
     test_dataloader = torch.utils.data.DataLoader(test_datasets, batch_size=batch_size, shuffle=False, num_workers=1)
 
     class_names = [d.name for d in os.scandir(test_dataroot) if d.is_dir()]
