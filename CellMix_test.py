@@ -52,6 +52,7 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
     since = time.time()
 
     print('Epoch: Test')
+    print('\nuseing ', augmentation_name, '\n')
     print('-' * 10)
 
     phase = 'test'
@@ -83,9 +84,12 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
         # Online Augmentations attention check
         if Augmentation is not None and MIL_Stripe is False:
             # todo 这里建议update  fix_position_ratio=0.5, puzzle_patch_size=32
-            Aug_inputs, Aug_labels, GT_long_labels = Augmentation(inputs, labels,
-                                                                  fix_position_ratio=fix_position_ratio,
-                                                                  puzzle_patch_size=puzzle_patch_size)
+            if augmentation_name[0:7] == 'CellMix':
+                Aug_inputs, Aug_labels, GT_long_labels = Augmentation(inputs, labels,
+                                                                      fix_position_ratio=fix_position_ratio,
+                                                                      puzzle_patch_size=puzzle_patch_size)
+            else:
+                Aug_inputs, Aug_labels, GT_long_labels = Augmentation(inputs, labels)
 
         # zero the parameter gradients only need in training
         # optimizer.zero_grad()
@@ -331,8 +335,8 @@ def main(args):
     test_datasets = torchvision.datasets.ImageFolder(test_dataroot, data_transforms['val'])
     test_dataset_size = len(test_datasets)
     # skip minibatch none to draw 20 figs
-    check_minibatch = args.check_minibatch if args.check_minibatch is not None else test_dataset_size // (
-            20 * batch_size)
+    check_minibatch = args.check_minibatch if args.check_minibatch is not None else max(1, test_dataset_size // (
+            20 * batch_size))
     
     test_dataloader = torch.utils.data.DataLoader(test_datasets, batch_size=batch_size,
                                                   shuffle=args.shuffle_dataloader, num_workers=1)
