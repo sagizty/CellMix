@@ -1,5 +1,5 @@
 """
-Training     release Nov 2rd 2022
+Training     Script  ver： Nov 5th 10:30
 
 dataset structure: ImageNet
 image folder dataset is used.
@@ -680,7 +680,8 @@ def main(args):
         fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
                                                        warmup_epochs=0,
                                                        basic_ratio=0.5,
-                                                       strategy=args.ratio_strategy)  # 'linear'
+                                                       strategy=args.ratio_strategy,  # 'linear'
+                                                       fix_position_ratio=args.fix_position_ratio)
 
         puzzle_patch_size_scheduler = patch_scheduler(total_epoches=num_epochs,
                                                       warmup_epochs=0,
@@ -835,7 +836,8 @@ def get_args_parser():
     parser.add_argument('--augmentation_name', default=None, type=str, help='Online augmentation name')
     parser.add_argument('--ratio_strategy', default=None, type=str, help='CellMix ratio scheduler strategy')
     parser.add_argument('--patch_strategy', default=None, type=str, help='CellMix patch scheduler strategy')
-    # CellMix ablation: fix_patch_size  patch_size_jump
+    # CellMix ablation: fix_position_ratio fix_patch_size  patch_size_jump
+    parser.add_argument('--fix_position_ratio', default=None, type=float, help='CellMix ablation using fix_position_ratio')
     parser.add_argument('--fix_patch_size', default=None, type=int, help='CellMix ablation using fix_patch_size')
     parser.add_argument('--patch_size_jump', default=None, type=str, help='CellMix patch_size_jump strategy')
 
