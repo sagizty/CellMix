@@ -1,5 +1,5 @@
 """
-Testing with augmentation(for visulization)   Script  ver： Oct 31st 15:40
+Testing with augmentation(for visulization)   Script  ver： Nov 7th 12:30
 """
 
 from __future__ import print_function, division
@@ -334,7 +334,8 @@ def main(args):
     check_minibatch = args.check_minibatch if args.check_minibatch is not None else test_dataset_size // (
             20 * batch_size)
     
-    test_dataloader = torch.utils.data.DataLoader(test_datasets, batch_size=batch_size, shuffle=False, num_workers=1)
+    test_dataloader = torch.utils.data.DataLoader(test_datasets, batch_size=batch_size,
+                                                  shuffle=args.shuffle_dataloader, num_workers=1)
 
     class_names = [d.name for d in os.scandir(test_dataroot) if d.is_dir()]
     class_names.sort()
@@ -508,6 +509,9 @@ def get_args_parser():
                         help='path to draw and save tensorboard output')
     # model_path_by_hand
     parser.add_argument('--model_path_by_hand', default=None, type=str, help='path to a model state-dict')
+    
+    # shuffle_dataloader
+    parser.add_argument('--shuffle_dataloader', action='store_true', help='shuffle Test dataset')
 
     # Help tool parameters
     parser.add_argument('--paint', action='store_false', help='paint in front desk')  # matplotlib.use('Agg')
