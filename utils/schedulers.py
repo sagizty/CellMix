@@ -1,5 +1,5 @@
 """
-Schedulers   Script  ver： Nov 5th 10:30
+Schedulers   Script  ver： Nov 11th 13:20
 lr_scheduler from MAE code.
 https://github.com/facebookresearch/mae
 puzzle_patch_scheduler is used to arrange patch size for multi-scale learning
@@ -102,7 +102,7 @@ class patch_scheduler:
 
         # self.loss_log ?
 
-    def __call__(self, epoch, loss=10.0):
+    def __call__(self, epoch, loss=0.0):
 
         if self.strategy is None or self.strategy == 'fixed':  # for flexable design in the future
             puzzle_patch_size = self.fix_patch_size or self.patch_list[0]
@@ -181,7 +181,8 @@ print(puzzle_patch_size)
 
 
 class ratio_scheduler:  # todo mode to do
-    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, fix_position_ratio=None, threshold=4.0, reducing_factor=0.933):
+    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None,
+                 threshold=4.0, reducing_factor=0.933):
         super().__init__()
         self.strategy = strategy
 
@@ -192,12 +193,10 @@ class ratio_scheduler:  # todo mode to do
 
         self.threshold = threshold
         self.reducing_factor = reducing_factor
-        
-        self.fix_position_ratio=fix_position_ratio
 
-    def __call__(self, epoch, loss=10.0):
-        if self.strategy is None or self.strategy == 'fixed':
-            fix_position_ratio = self.fix_position_ratio or self.basic_ratio
+    def __call__(self, epoch, loss=0.0):
+        if self.strategy is None:
+            fix_position_ratio = self.basic_ratio
 
         elif self.strategy == 'loss_back':
 
