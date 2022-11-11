@@ -1,5 +1,5 @@
 """
-Training     Script  ver： Nov 11th 13:40
+Training   release Nov 11th 2022  16:40
 
 dataset structure: ImageNet
 image folder dataset is used.
@@ -672,7 +672,7 @@ def main(args):
     Augmentation = get_online_augmentation(augmentation_name, p=0.5, class_num=num_classes,
                                            batch_size=batch_size, edge_size=edge_size, device=device)
 
-    if augmentation_name != 'CellMix-Split' and augmentation_name != 'CellMix-Group':
+    if augmentation_name != 'CellMix-Split' and augmentation_name != 'CellMix-Group' and augmentation_name != 'CellMix-Random':
         fix_position_ratio_scheduler = None
         puzzle_patch_size_scheduler = None
     else:
