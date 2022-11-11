@@ -1,5 +1,5 @@
 """
-Schedulers   Script  ver： Nov 11th 13:20
+Schedulers   Script  ver： Nov 11th 13:30
 lr_scheduler from MAE code.
 https://github.com/facebookresearch/mae
 puzzle_patch_scheduler is used to arrange patch size for multi-scale learning
@@ -57,6 +57,10 @@ def adjust_learning_rate(optimizer, epoch, args):
 
 
 class patch_scheduler:
+    """
+    this is used to drive the patch size by loss and epoch
+    the patch list is automatically get
+    """
 
     def __init__(self, total_epoches=200, warmup_epochs=20, edge_size=384, basic_patch=16, strategy=None,
                  threshold=4.0, reducing_factor=0.933, fix_patch_size=None, patch_size_jump=None):
@@ -139,13 +143,15 @@ class patch_scheduler:
 
                 elif loss < self.threshold:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                            / (self.total_epoches - self.warmup_epochs)
-                                                            * len(self.patch_list)) + 1, 0), len(self.patch_list) - 1)]
+                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    * len(self.patch_list)) + 1, 0),
+                                                            len(self.patch_list) - 1)]
                     self.threshold *= self.reducing_factor
                 else:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                            / (self.total_epoches - self.warmup_epochs)
-                                                            * len(self.patch_list)) - 1, 0), len(self.patch_list) - 1)]
+                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    * len(self.patch_list)) - 1, 0),
+                                                            len(self.patch_list) - 1)]
 
         elif self.strategy == 'loss_hold':
             if epoch < self.warmup_epochs:  # for warmup
@@ -158,13 +164,15 @@ class patch_scheduler:
 
                 elif loss < self.threshold:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                            / (self.total_epoches - self.warmup_epochs)
-                                                            * len(self.patch_list)) + 1, 0), len(self.patch_list) - 1)]
+                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    * len(self.patch_list)) + 1, 0),
+                                                            len(self.patch_list) - 1)]
                     self.threshold *= self.reducing_factor
                 else:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                            / (self.total_epoches - self.warmup_epochs)
-                                                            * len(self.patch_list)), 0), len(self.patch_list) - 1)]
+                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    * len(self.patch_list)), 0),
+                                                            len(self.patch_list) - 1)]
 
         else:
             puzzle_patch_size = self.patch_list[0]  # basic_patch
@@ -180,9 +188,13 @@ print(puzzle_patch_size)
 '''
 
 
-class ratio_scheduler:  # todo mode to do
-    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None,
-                 threshold=4.0, reducing_factor=0.933):
+class ratio_scheduler:
+    """
+        this is used to drive the fix position ratio by loss and epoch
+        the ratio is control by ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2
+    """
+    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, fix_position_ratio=None,
+                 threshold=4.0, loss_reducing_factor=0.933, ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2):
         super().__init__()
         self.strategy = strategy
 
@@ -192,11 +204,17 @@ class ratio_scheduler:  # todo mode to do
         self.basic_ratio = basic_ratio
 
         self.threshold = threshold
-        self.reducing_factor = reducing_factor
+        self.loss_reducing_factor = loss_reducing_factor
+
+        self.fix_position_ratio = fix_position_ratio
+
+        self.upper_limit = upper_limit
+        self.lower_limit = lower_limit
+        self.ratio_floor_factor = ratio_floor_factor
 
     def __call__(self, epoch, loss=0.0):
-        if self.strategy is None:
-            fix_position_ratio = self.basic_ratio
+        if self.strategy is None or self.strategy == 'fixed':
+            fix_position_ratio = self.fix_position_ratio or self.basic_ratio
 
         elif self.strategy == 'loss_back':
 
@@ -204,8 +222,8 @@ class ratio_scheduler:  # todo mode to do
                 fix_position_ratio = self.basic_ratio  # in warm-up we use the fix ratio
 
             else:
-                max_ratio = min(3 * self.basic_ratio, 0.9)  # upper-limit of 0.9
-                min_ratio = max(self.basic_ratio * 0.5, 0.2)  # lower-limit of 0.2 ? fixme 不一定合适
+                max_ratio = min(3 * self.basic_ratio, self.upper_limit)
+                min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
                 if loss == 0.0:
                     fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
@@ -216,7 +234,7 @@ class ratio_scheduler:  # todo mode to do
                                                   - (epoch - self.warmup_epochs)) /
                                                  (self.total_epoches - self.warmup_epochs)
                                                  * max_ratio * 0.9, min_ratio), max_ratio)
-                    self.threshold *= self.reducing_factor
+                    self.threshold *= self.loss_reducing_factor
                 else:
                     fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
@@ -229,8 +247,8 @@ class ratio_scheduler:  # todo mode to do
                 fix_position_ratio = self.basic_ratio  # in warm-up we use the fix ratio
 
             else:
-                max_ratio = min(3 * self.basic_ratio, 0.9)  # upper-limit of 0.9
-                min_ratio = max(self.basic_ratio * 0.5, 0.2)  # lower-limit of 0.2 ? fixme exploring
+                max_ratio = min(3 * self.basic_ratio, self.upper_limit)
+                min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
 
                 if loss == 0.0:
                     fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
@@ -242,7 +260,7 @@ class ratio_scheduler:  # todo mode to do
                                                   - (epoch - self.warmup_epochs)) /
                                                  (self.total_epoches - self.warmup_epochs)
                                                  * max_ratio * 0.9, min_ratio), max_ratio)
-                    self.threshold *= self.reducing_factor
+                    self.threshold *= self.loss_reducing_factor
                 else:
                     fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
@@ -253,8 +271,8 @@ class ratio_scheduler:  # todo mode to do
             if epoch < self.warmup_epochs:  # for warmup
                 fix_position_ratio = self.basic_ratio  # fixed
             else:
-                max_ratio = min(3 * self.basic_ratio, 0.9)  # upper-limit of 0.9
-                min_ratio = max(self.basic_ratio * 0.5, 0.2)  # lower-limit of 0.2 ? fixme exploring
+                max_ratio = min(3 * self.basic_ratio, self.upper_limit)  # upper-limit of 0.9
+                min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
 
                 fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
                                               - (epoch - self.warmup_epochs)) /
