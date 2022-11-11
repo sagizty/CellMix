@@ -681,13 +681,14 @@ def main(args):
                                                        warmup_epochs=0,
                                                        basic_ratio=0.5,
                                                        strategy=args.ratio_strategy,  # 'linear'
-                                                       fix_position_ratio=args.fix_position_ratio)
+                                                       threshold=args.loss_drive_threshold)
 
         puzzle_patch_size_scheduler = patch_scheduler(total_epoches=num_epochs,
                                                       warmup_epochs=0,
                                                       edge_size=edge_size,
                                                       basic_patch=16,
                                                       strategy=args.patch_strategy,  # 'random', 'linear' or 'loop'
+                                                      threshold=args.loss_drive_threshold,
                                                       fix_patch_size=args.fix_patch_size,  # 16,32,48,64,96,128,192
                                                       patch_size_jump=args.patch_size_jump)  # 'odd' or 'even'
 
@@ -836,6 +837,8 @@ def get_args_parser():
     parser.add_argument('--augmentation_name', default=None, type=str, help='Online augmentation name')
     parser.add_argument('--ratio_strategy', default=None, type=str, help='CellMix ratio scheduler strategy')
     parser.add_argument('--patch_strategy', default=None, type=str, help='CellMix patch scheduler strategy')
+    parser.add_argument('--loss_drive_threshold', default=4.0, type=float, help='CellMix loss_drive_threshold')
+    
     # CellMix ablation: fix_position_ratio fix_patch_size  patch_size_jump
     parser.add_argument('--fix_position_ratio', default=None, type=float, help='CellMix ablation using fix_position_ratio')
     parser.add_argument('--fix_patch_size', default=None, type=int, help='CellMix ablation using fix_patch_size')
