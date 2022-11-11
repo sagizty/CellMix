@@ -1,9 +1,8 @@
 """
-Online Augmentations   release Nov 2rd 2022
+Online Augmentations   release Nov 11th 2022  16:40
 ref:
 CutOut, Mixup, CutMix based on
 https://blog.csdn.net/cp1314971/article/details/106612060
-
 """
 import cv2
 import torch
@@ -308,11 +307,11 @@ class FMix(FMixBase):
 
 # CellMix
 class CellMix(object):
-    def __init__(self, shuffle_p=1.0, class_num=2, strategy='Split', device='cpu'):
+    def __init__(self, shuffle_p=1.0, class_num=2, strategy='Group', device='cpu'):
         self.p = shuffle_p
         self.CLS = class_num  # classification catagory number of the task
         self.device = device
-        self.strategy = strategy  # 'Group' or 'Split'
+        self.strategy = strategy  # 'Group' or 'Split' or 'Random'
 
     def __call__(self, inputs, labels, fix_position_ratio=0.5, puzzle_patch_size=32, act=True):
         """
@@ -323,11 +322,13 @@ class CellMix(object):
         cross-sample selection is done by argsort random noise in dim 1 and apply to all image within the batch.
         in-place batch-wise shuffle operation is done by argsort random noise in dim 0.
         grouped-in-place batch-wise shuffle operation is done by argsort random noise in the batch dimension
+
         input:
         inputs: [B, 3, H, W], input image tensor
         fix_position_ratio  float : ratio of least remaining part of patches
         puzzle_patch_size  int : patch size of shuffle
         act : trigger or not
+
         output: x, soft_label, long_label
         x : [B, 3, H, W] re-grouped image after cellmix augmentation
         soft_label : [B, CLS], soft-label of the class distribution
@@ -375,7 +376,7 @@ class CellMix(object):
         mask_fixed = torch.gather(mask, dim=1, index=ids_fix.unsqueeze(-1).repeat(1, 1, self.CLS))
         mask_puzzle = torch.gather(mask, dim=1, index=ids_puzzle.unsqueeze(-1).repeat(1, 1, self.CLS))
 
-        if self.strategy == 'Group':
+        if self.strategy == 'Group' or self.strategy == 'Random':
             # the group strategy shuffles the relation patches togather, from image to image
             # cellmix moves the tokens to the same place but at different sample
             B, num_shuffle_patches, D = x_puzzle.shape
@@ -383,7 +384,7 @@ class CellMix(object):
             x_puzzle = x_puzzle[shuffle_indices]
             mask_puzzle = mask_puzzle[shuffle_indices]
 
-        else:  # 'split'
+        elif self.strategy == 'Split':
             # the split strategy shuffles the relation patches seperately, from image to image
             # batch&patch-wise shuffle is needed for cellmix
             B, num_shuffle_patches, D = x_puzzle.shape
@@ -391,11 +392,14 @@ class CellMix(object):
             noise = torch.rand(B, num_shuffle_patches, device=self.device)  # [num_patches,B] noise in [0, 1]
             # sort the noise matrix, obtain a index assignment for shuffle, now the shuffle dim is 0 (among the batch)
             in_place_shuffle_indices = torch.argsort(noise, dim=0)
-            # ascend: small is keep, large is remove， ids_shuffle shape of [B,N], in B is idx
+            # ids_shuffle shape of [B,N], in B is idx
             # torch.gather to shuffle
             x_puzzle = torch.gather(x_puzzle, dim=0, index=in_place_shuffle_indices.unsqueeze(-1).repeat(1, 1, D))
             mask_puzzle = torch.gather(mask_puzzle, dim=0,
                                        index=in_place_shuffle_indices.unsqueeze(-1).repeat(1, 1, self.CLS))
+
+        else:
+            print('not a valid CellMix strategy')
 
         # pack up all puzzle patches
         inputs = torch.cat([x_fixed, x_puzzle], dim=1)
@@ -405,6 +409,18 @@ class CellMix(object):
         inputs = torch.gather(inputs, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, D))
         # torch.gather to generate restored binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, self.CLS))
+
+        # CellMix random strategy randomly shuffle the image patches (after cellmix-group)
+        if self.strategy == 'Random':
+            B, num_patches, D = inputs.shape
+            # create a noise tensor to prepare shuffle idx of puzzle patches
+            noise = torch.rand(B, num_patches, device=self.device)  # [num_patches,B] noise in [0, 1]
+            # sort the noise matrix, obtain a index assignment for shuffle, now the shuffle dim is 1 (with the batch)
+            all_shuffle_indices = torch.argsort(noise, dim=1)
+            # ids_shuffle shape of [B,N], in N is idx
+            # torch.gather to shuffle
+            inputs = torch.gather(inputs, dim=1, index=all_shuffle_indices.unsqueeze(-1).repeat(1, 1, D))
+            # no need to torch the mask, because its patch-wise shuffle within each sample
 
         # unpatchify to obtain puzzle images and their mask
         inputs = unpatchify(inputs, puzzle_patch_size)  # restore to image size：B,3,224,224/ B,3,384,384
@@ -423,7 +439,7 @@ class CellMix(object):
 # ask func
 def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu'):
     """
-    :param augmentation_name: 数据增强方式
+    :param augmentation_name: name of data-augmentation method
     :param p: chance of triggering
     :param class_num: classification task num
     :param batch_size: batch size
@@ -439,6 +455,10 @@ def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4,
 
     elif augmentation_name == 'CellMix-Split':
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Split', device=device)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-Random':
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', device=device)
         return Augmentation
 
     elif augmentation_name == 'Cutout':
@@ -488,11 +508,7 @@ def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4,
 
 if __name__ == '__main__':
     '''
-    x = torch.randn(4, 3, 384, 384)
-    label = torch.tensor([0, 1, 2, 3])
-    print(label)
-
-    Augmentation = get_online_augmentation('CellMix-Split', p=0.5, class_num=4)
+    Augmentation = get_online_augmentation('CellMix-Split', p=0.5, class_num=2)
     output, labels, GT_labels = Augmentation(x, label, fix_position_ratio=0.5, puzzle_patch_size=32, act=True)
 
     print(labels, GT_labels)
@@ -504,8 +520,10 @@ if __name__ == '__main__':
     label = torch.load("/Users/zhangtianyi/Desktop/working on ideas/idea6 CellMix/temp-tensors/warwick_labels.pt")
     # print(label)
 
-    Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
-    output, labels, GT_labels = Augmentation(x, label, act=True)
+    # Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
+    # output, labels, GT_labels = Augmentation(x, label, act=True)
+    Augmentation = get_online_augmentation('CellMix-Group', p=1, class_num=2)
+    output, labels, GT_labels = Augmentation(x, label, fix_position_ratio=0.5, puzzle_patch_size=32, act=True)
 
     print(labels, GT_labels)
 
