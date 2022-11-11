@@ -515,9 +515,9 @@ if __name__ == '__main__':
 
     '''
 
-    x = torch.load("/Users/zhangtianyi/Desktop/working on ideas/idea6 CellMix/temp-tensors/warwick.pt")
+    x = torch.load("../temp-tensors/warwick.pt")
     # print(x.shape)
-    label = torch.load("/Users/zhangtianyi/Desktop/working on ideas/idea6 CellMix/temp-tensors/warwick_labels.pt")
+    label = torch.load("../temp-tensors/warwick_labels.pt")
     # print(label)
 
     # Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
