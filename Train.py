@@ -1,5 +1,5 @@
 """
-Training     Script  ver： Nov 5th 10:30
+Training     Script  ver： Nov 11th 13:40
 
 dataset structure: ImageNet
 image folder dataset is used.
