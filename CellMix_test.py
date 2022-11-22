@@ -1,5 +1,5 @@
 """
-Testing with augmentation(for visulization)   Script  ver： Nov 7th 12:30
+Testing with augmentation(for visulization)   Script  ver： Nov 7th 15:00
 """
 
 from __future__ import print_function, division
@@ -11,8 +11,8 @@ import time
 import torchvision
 from tensorboardX import SummaryWriter
 
-from Models.getmodel import get_model
-from Models.GetPromptModel import build_promptmodel
+from Hybrid.getmodel import get_model
+from PromptModels.GetPromptModel import build_promptmodel
 
 from utils.online_augmentations import get_online_augmentation
 from utils.data_augmentation import *
@@ -172,13 +172,13 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
                 pass
 
             if enable_visualize_check:
-                visualize_check(inputs, labels, model, class_names, num_images=3,
+                visualize_check(inputs, labels, model, class_names, num_images=-1,
                                 pic_name='Visual_' + str(epoch_idx) + '_I_' + str(index + 1),
                                 draw_path=draw_path, writer=writer)
                 if Augmentation is not None:
                     describe = '_fix_position_ratio_' + str(fix_position_ratio) \
                                + '_puzzle_patch_size_' + str(puzzle_patch_size)
-                    visualize_check(Aug_inputs, GT_long_labels, model, class_names, num_images=-1,
+                    visualize_check(Aug_inputs, GT_long_labels, model, class_names, num_images=3,
                                     pic_name=augmentation_name + describe +
                                              'Visual_' + str(epoch_idx) + '_I_' + str(index + 1),
                                     draw_path=draw_path, writer=writer)
@@ -309,9 +309,7 @@ def main(args):
     else:
         save_model_path = model_path_by_hand
 
-    if os.path.exists(draw_path):
-        del_file(draw_path)  # clear the output folder, NOTICE this may be DANGEROUS
-    else:
+    if not os.path.exists(draw_path):
         os.makedirs(draw_path)
 
     # choose the test dataset
@@ -334,10 +332,11 @@ def main(args):
     # test setting is the same as the validate dataset's setting
     test_datasets = torchvision.datasets.ImageFolder(test_dataroot, data_transforms['val'])
     test_dataset_size = len(test_datasets)
+
     # skip minibatch none to draw 20 figs
     check_minibatch = args.check_minibatch if args.check_minibatch is not None else max(1, test_dataset_size // (
             20 * batch_size))
-    
+
     test_dataloader = torch.utils.data.DataLoader(test_datasets, batch_size=batch_size,
                                                   shuffle=args.shuffle_dataloader, num_workers=1)
 
@@ -505,15 +504,15 @@ def get_args_parser():
                         help='use a single GPU with its index, -1 to use multiple GPU')
 
     # Path parameters
-    parser.add_argument('--dataroot', default=r'/data/pancreatic-cancer-project/k5_dataset',
+    parser.add_argument('--dataroot', default=r'/data/k5_dataset',
                         help='path to dataset')
-    parser.add_argument('--model_path', default=r'/home/pancreatic-cancer-project/saved_models',
+    parser.add_argument('--model_path', default=r'/home/saved_models',
                         help='path to save model state-dict')
-    parser.add_argument('--draw_root', default=r'/home/pancreatic-cancer-project/runs',
+    parser.add_argument('--draw_root', default=r'/home/runs',
                         help='path to draw and save tensorboard output')
     # model_path_by_hand
     parser.add_argument('--model_path_by_hand', default=None, type=str, help='path to a model state-dict')
-    
+
     # shuffle_dataloader
     parser.add_argument('--shuffle_dataloader', action='store_true', help='shuffle Test dataset')
 
