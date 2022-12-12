@@ -73,7 +73,7 @@ class Cutout(object):
         self.device = torch.device(device)
 
     def __call__(self, inputs, labels, act=True):
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)  # duplicate inputs for ori inputs
         cutout_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -114,7 +114,7 @@ class CutMix(object):
 
     def __call__(self, inputs, labels, act=True):
 
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)  # duplicate inputs for ori inputs
         cutmix_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -156,7 +156,7 @@ class Mixup(object):
         self.device = torch.device(device)
 
     def __call__(self, inputs, labels, act=True):
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)  # duplicate inputs for ori inputs
         mixup_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -190,7 +190,7 @@ class SaliencyMix(object):
         self.device = torch.device(device)
 
     def __call__(self, inputs, labels, act=True):
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)  # duplicate inputs for ori inputs
         saliencymix_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -229,7 +229,7 @@ class ResizeMix(object):
         self.device = torch.device(device)
 
     def __call__(self, inputs, labels, alpha=0.1, beta=0.8, act=True):
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)  # duplicate inputs for ori inputs
         resizemix_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -279,7 +279,7 @@ class FMix(FMixBase):
         lam, mask = sample_mask(self.alpha, self.decay_power, self.size, self.max_soft, self.reformulate)
         mask = torch.from_numpy(mask).float().to(self.device)
 
-        labels = torch.eye(self.class_num)[labels, :].to(self.device)  # one-hot hard label
+        labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
         ori_inputs = inputs.clone().to(self.device)
         fmix_inputs = inputs.clone().to(self.device)  # duplicate inputs for outputs
         lam_list = []  # a list to record operating ratio
@@ -335,7 +335,7 @@ class CellMix(object):
         long_label : [B] hard long-label for general discribe
         """
         if np.random.randint(0, 101) > 100 * self.p or (not act):
-            soft_label = torch.eye(self.CLS)[labels, :].to(self.device)  # one-hot hard label
+            soft_label = torch.eye(self.CLS).to(self.device)[labels, :]  # one-hot hard label
             return inputs, soft_label, labels
 
         # Break img into puzzle patches with the size of puzzle_patch_size  [B, num_patches, D]
