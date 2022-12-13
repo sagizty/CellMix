@@ -11,7 +11,7 @@ import time
 import torchvision
 from tensorboardX import SummaryWriter
 
-from Hybrid.getmodel import get_model
+from Models.getmodel import get_model
 from PromptModels.GetPromptModel import build_promptmodel
 
 from utils.online_augmentations import get_online_augmentation
