@@ -282,8 +282,6 @@ def main(args):
 
     model_idx = args.model_idx  # the model we are going to use. by the format of Model_size_other_info
 
-    MIL_Stripe = args.MIL_Stripe
-
     # structural parameter
     drop_rate = args.drop_rate
     attn_drop_rate = args.attn_drop_rate
