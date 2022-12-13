@@ -1,5 +1,5 @@
 """
-Testing with augmentation(for visulization)   Script  ver： Nov 7th 15:00
+Testing with augmentation (for visulization)   Script  ver： Dec 13th 13:00
 """
 
 from __future__ import print_function, division
@@ -12,7 +12,7 @@ import torchvision
 from tensorboardX import SummaryWriter
 
 from Models.getmodel import get_model
-from PromptModels.GetPromptModel import build_promptmodel
+from Models.GetPromptModel import build_promptmodel
 
 from utils.online_augmentations import get_online_augmentation
 from utils.data_augmentation import *
@@ -23,7 +23,7 @@ from utils.visual_usage import *
 def test_model(model, test_dataloader, criterion, class_names, test_dataset_size, model_idx, test_model_idx, edge_size,
                Augmentation=None, augmentation_name=None, fix_position_ratio=0.5, puzzle_patch_size=32,
                check_minibatch=100, device=None, draw_path='../imaging_results',
-               enable_attention_check=None, enable_visualize_check=True, MIL_Stripe=False, writer=None):
+               enable_attention_check=None, enable_visualize_check=True, writer=None):
     """
     Testing iteration
 
@@ -34,7 +34,14 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
     :param test_dataset_size: size of datasets
 
     :param model_idx: model idx for the getting trained model
+    :param test_model_idx: model idx for the save model output files
     :param edge_size: image size for the input image
+
+    :param Augmentation: Online augmentation
+    :param augmentation_name: Online augmentation name
+    :param fix_position_ratio: fix position ratio for cellmix
+    :param puzzle_patch_size: puzzle size for cellmix
+
     :param check_minibatch: number of skip over minibatch in calculating the criteria's results etc.
 
     :param device: cpu/gpu object
@@ -82,7 +89,7 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
         labels = labels.to(device)
 
         # Online Augmentations attention check
-        if Augmentation is not None and MIL_Stripe is False:
+        if Augmentation is not None:
             # todo 这里建议update  fix_position_ratio=0.5, puzzle_patch_size=32
             if augmentation_name[0:7] == 'CellMix':
                 Aug_inputs, Aug_labels, GT_long_labels = Augmentation(inputs, labels,
@@ -148,24 +155,18 @@ def test_model(model, test_dataloader, criterion, class_names, test_dataset_size
 
             if enable_attention_check:
                 try:
-                    if MIL_Stripe:
-                        check_SAA(inputs, labels, model, model_idx, edge_size, class_names, model_type='MIL',
-                                  num_images=1,
-                                  pic_name='GradCAM_' + str(epoch_idx) + '_I_' + str(index + 1),
-                                  draw_path=draw_path, writer=writer)
-                    else:
-                        check_SAA(inputs, labels, model, model_idx, edge_size, class_names, num_images=1,
-                                  pic_name='GradCAM_' + str(epoch_idx) + '_I_' + str(index + 1),
-                                  draw_path=draw_path, writer=writer)
+                    check_SAA(inputs, labels, model, model_idx, edge_size, class_names, num_images=1,
+                              pic_name='GradCAM_' + str(epoch_idx) + '_I_' + str(index + 1),
+                              draw_path=draw_path, writer=writer)
 
-                        if Augmentation is not None:
-                            describe = '_fix_position_ratio_' + str(fix_position_ratio) \
-                                       + '_puzzle_patch_size_' + str(puzzle_patch_size)
-                            check_SAA(Aug_inputs, GT_long_labels, model, model_idx, edge_size, class_names,
-                                      num_images=1,
-                                      pic_name=augmentation_name + describe +
-                                               '_GradCAM_' + str(epoch_idx) + '_I_' + str(index + 1),
-                                      draw_path=draw_path, writer=writer)
+                    if Augmentation is not None:
+                        describe = '_fix_position_ratio_' + str(fix_position_ratio) \
+                                   + '_puzzle_patch_size_' + str(puzzle_patch_size)
+                        check_SAA(Aug_inputs, GT_long_labels, model, model_idx, edge_size, class_names,
+                                  num_images=1,
+                                  pic_name=augmentation_name + describe +
+                                           '_GradCAM_' + str(epoch_idx) + '_I_' + str(index + 1),
+                                  draw_path=draw_path, writer=writer)
                 except:
                     print('model:', model_idx, ' with edge_size', edge_size, 'is not supported yet')
             else:
@@ -299,13 +300,12 @@ def main(args):
 
     Pre_Trained_model_path = args.Pre_Trained_model_path  # None
 
-    test_model_idx = 'Aug_CLS_' + model_idx + '_test' if not MIL_Stripe else 'MIL_Stripe_' + model_idx + '_test'
+    test_model_idx = 'Aug_CLS_' + model_idx + '_test'
     draw_path = os.path.join(draw_root, test_model_idx)
 
     # load trained model by its task-based saving name, also support MIL-SI model but the MIL_Stripe is required
     if model_path_by_hand is None:
-        save_model_path = os.path.join(model_path, 'CLS_' + model_idx + '.pth') \
-            if not MIL_Stripe else os.path.join(model_path, 'MIL_' + model_idx + '.pth')
+        save_model_path = os.path.join(model_path, 'CLS_' + model_idx + '.pth')
     else:
         save_model_path = model_path_by_hand
 
@@ -372,25 +372,20 @@ def main(args):
     # get model
     pretrained_backbone = False  # model is trained already, pretrained backbone weight is useless here
 
-    if MIL_Stripe:
-        from MIL import MIL_model
-        model = MIL_model.build_MIL_model(model_idx, edge_size, pretrained_backbone, num_classes=len(class_names))
-
+    if PromptTuning is None:
+        model = get_model(num_classes, edge_size, model_idx, drop_rate, attn_drop_rate, drop_path_rate,
+                          pretrained_backbone, use_cls_token, use_pos_embedding, use_att_module)
     else:
-        if PromptTuning is None:
-            model = get_model(num_classes, edge_size, model_idx, drop_rate, attn_drop_rate, drop_path_rate,
-                              pretrained_backbone, use_cls_token, use_pos_embedding, use_att_module)
+        if Pre_Trained_model_path is not None and os.path.exists(Pre_Trained_model_path):
+            base_state_dict = torch.load(Pre_Trained_model_path)
         else:
-            if Pre_Trained_model_path is not None and os.path.exists(Pre_Trained_model_path):
-                base_state_dict = torch.load(Pre_Trained_model_path)
-            else:
-                base_state_dict = 'timm'
-                print('base_state_dict of timm')
+            base_state_dict = 'timm'
+            print('base_state_dict of timm')
 
-            print('Test the PromptTuning of ', model_idx)
-            print('Prompt VPT type:', PromptTuning)
-            model = build_promptmodel(num_classes, edge_size, model_idx, Prompt_Token_num=Prompt_Token_num,
-                                      VPT_type=PromptTuning, base_state_dict=base_state_dict)
+        print('Test the PromptTuning of ', model_idx)
+        print('Prompt VPT type:', PromptTuning)
+        model = build_promptmodel(num_classes, edge_size, model_idx, Prompt_Token_num=Prompt_Token_num,
+                                  VPT_type=PromptTuning, base_state_dict=base_state_dict)
 
     try:
         if PromptTuning is None:
@@ -402,8 +397,6 @@ def main(args):
                 model.load_prompt(torch.load(save_model_path))
 
         print("model loaded")
-        if MIL_Stripe:
-            model = model.Stripe()
         print("model :", model_idx)
 
     except:
@@ -418,8 +411,6 @@ def main(args):
                 else:
                     model.load_prompt(torch.load(save_model_path))
 
-            if MIL_Stripe:
-                model = model.Stripe()
             print("DataParallel model loaded")
         except:
             print("model loading erro!!")
@@ -461,8 +452,8 @@ def main(args):
         writer = None
 
     # if u run locally
-    # nohup tensorboard --logdir=/home/MSHT/runs --host=0.0.0.0 --port=7777 &
-    # tensorboard --logdir=/home/ZTY/runs --host=0.0.0.0 --port=7777
+    # nohup tensorboard --logdir=/home/runs --host=0.0.0.0 --port=7777 &
+    # tensorboard --logdir=/home/runs --host=0.0.0.0 --port=7777
 
     # Augmentation (test aug trigger p = 100%)
     Augmentation = get_online_augmentation(augmentation_name, p=1.0, class_num=num_classes,
@@ -476,7 +467,7 @@ def main(args):
                augmentation_name=augmentation_name, fix_position_ratio=args.fix_position_ratio,
                puzzle_patch_size=args.puzzle_patch_size, check_minibatch=check_minibatch, device=device,
                draw_path=draw_path, enable_attention_check=enable_attention_check,
-               enable_visualize_check=enable_visualize_check, MIL_Stripe=MIL_Stripe, writer=writer)
+               enable_visualize_check=enable_visualize_check, writer=writer)
 
 
 def get_args_parser():
@@ -484,9 +475,6 @@ def get_args_parser():
 
     # Model Name or index
     parser.add_argument('--model_idx', default='Hybrid2_384_401_testsample', type=str, help='Model Name or index')
-
-    # MIL Stripe
-    parser.add_argument('--MIL_Stripe', action='store_true', help='MIL_Stripe')
 
     # drop_rate, attn_drop_rate, drop_path_rate
     parser.add_argument('--drop_rate', default=0.0, type=float, help='dropout rate , default 0.0')
