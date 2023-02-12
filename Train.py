@@ -1,5 +1,5 @@
 """
-Training   release Nov 11th 2022  16:40
+Training   release Script  ver： Feb 12th 19:00
 
 dataset structure: ImageNet
 image folder dataset is used.
@@ -644,6 +644,7 @@ def main(args):
                                                        warmup_epochs=0,
                                                        basic_ratio=0.5,
                                                        strategy=args.ratio_strategy,  # 'linear'
+                                                       fix_position_ratio=args.fix_position_ratio,
                                                        threshold=args.loss_drive_threshold)
 
         puzzle_patch_size_scheduler = patch_scheduler(total_epoches=num_epochs,
