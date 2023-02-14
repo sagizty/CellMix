@@ -1,5 +1,5 @@
 """
-Online Augmentations   release Nov 11th 2022  16:40
+Online Augmentations    Dec 13th 2022  00:20
 ref:
 CutOut, Mixup, CutMix based on
 https://blog.csdn.net/cp1314971/article/details/106612060
@@ -535,4 +535,3 @@ if __name__ == '__main__':
     composed_img.show()
     composed_img = ToPILImage()(output[3])
     composed_img.show()
-
