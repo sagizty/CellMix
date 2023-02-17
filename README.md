@@ -4,7 +4,7 @@ Pathology image analysis crucially relies on the availability and quality of ann
 
 <img width="1133" alt="Screen Shot 2022-11-22 at 17 21 56" src="https://user-images.githubusercontent.com/50575108/203275968-4fbb99ea-558d-4eb4-beb2-d7019cfb13e2.png">
 
-<img width="307" alt="Screen Shot 2022-11-22 at 17 22 12" src="https://user-images.githubusercontent.com/50575108/203275989-82410b2c-5add-4877-9877-799694f7712e.png">
+<img width="929" alt="Screenshot 2023-02-17 at 7 49 54 PM" src="https://user-images.githubusercontent.com/50575108/219646517-058aef5e-2890-4699-b39c-d790e362b12e.png">
 
 <img width="644" alt="Screen Shot 2022-11-22 at 17 22 25" src="https://user-images.githubusercontent.com/50575108/203276007-9b3f52d2-ebce-447f-bce4-994d99f8c3f7.png">
 
