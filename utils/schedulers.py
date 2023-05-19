@@ -1,5 +1,5 @@
 """
-Schedulers   Script  ver： Nov 11th 13:30
+Schedulers   Script  ver： May 19th 12:00
 lr_scheduler from MAE code.
 https://github.com/facebookresearch/mae
 puzzle_patch_scheduler is used to arrange patch size for multi-scale learning
@@ -107,11 +107,8 @@ class patch_scheduler:
         # self.loss_log ?
 
     def __call__(self, epoch, loss=0.0):
-
-        if self.strategy is None or self.strategy == 'fixed':  # for flexable design in the future
-            puzzle_patch_size = self.fix_patch_size or self.patch_list[0]
-
-        elif self.strategy == 'linear' or self.strategy == 'reverse':  # reverse from big size to small
+        # Designed for flexable ablations
+        if self.strategy == 'linear' or self.strategy == 'reverse':  # reverse from big size to small
             if epoch < self.warmup_epochs:  # warmup
                 puzzle_patch_size = 32  # fixed size for warmup
             else:
@@ -175,7 +172,8 @@ class patch_scheduler:
                                                             len(self.patch_list) - 1)]
 
         else:
-            puzzle_patch_size = self.patch_list[0]  # basic_patch
+            # if self.strategy is None or 'fixed' or 'ratio-decay'
+            puzzle_patch_size = self.fix_patch_size or self.patch_list[0]  # basic_patch
 
         return puzzle_patch_size
 
@@ -195,6 +193,8 @@ class ratio_scheduler:
     """
     def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, fix_position_ratio=None,
                  threshold=4.0, loss_reducing_factor=0.933, ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2):
+
+        # fixme basic_ratio and fix_position_ratio(when stage is fixed) is a bit conflicting, not good enough
         super().__init__()
         self.strategy = strategy
 
@@ -213,8 +213,17 @@ class ratio_scheduler:
         self.ratio_floor_factor = ratio_floor_factor
 
     def __call__(self, epoch, loss=0.0):
-        if self.strategy is None or self.strategy == 'fixed':
-            fix_position_ratio = self.fix_position_ratio or self.basic_ratio
+        if self.strategy == 'ratio-decay' or self.strategy == 'decay':
+            if epoch < self.warmup_epochs:  # for warmup
+                fix_position_ratio = self.basic_ratio  # fixed
+            else:
+                max_ratio = min(3 * self.basic_ratio, self.upper_limit)  # upper-limit of 0.9
+                min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
+
+                fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                                              - (epoch - self.warmup_epochs)) /
+                                             (self.total_epoches - self.warmup_epochs)
+                                             * max_ratio, min_ratio), max_ratio)
 
         elif self.strategy == 'loss_back':
 
@@ -267,17 +276,8 @@ class ratio_scheduler:
                                                  (self.total_epoches - self.warmup_epochs)
                                                  * max_ratio, min_ratio), max_ratio)
 
-        else:  # ratio decay
-            if epoch < self.warmup_epochs:  # for warmup
-                fix_position_ratio = self.basic_ratio  # fixed
-            else:
-                max_ratio = min(3 * self.basic_ratio, self.upper_limit)  # upper-limit of 0.9
-                min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
-
-                fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
-                                              - (epoch - self.warmup_epochs)) /
-                                             (self.total_epoches - self.warmup_epochs)
-                                             * max_ratio, min_ratio), max_ratio)
+        else:  # basic_ratio
+            fix_position_ratio = self.fix_position_ratio or self.basic_ratio
 
         return fix_position_ratio
 
