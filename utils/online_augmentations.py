@@ -1,5 +1,5 @@
 """
-Online Augmentations    Dec 13th 2022  00:20
+Online Augmentations    Feb 7th 2024  12:00
 ref:
 CutOut, Mixup, CutMix based on
 https://blog.csdn.net/cp1314971/article/details/106612060
@@ -63,9 +63,17 @@ def saliency_bbox(img, lam):
     return bbx1, bby1, bbx2, bby2
 
 
-# augmentation SAMPLE
+# augmentation methods
 class Cutout(object):
     def __init__(self, alpha=2, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+        """
+        Cutout augmentation arXiv:1708.04552
+        :param alpha: alpha
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+        :param device: CUDA or CPU
+        """
         self.alpha = alpha
         self.class_num = class_num
         self.batch_size = batch_size
@@ -97,11 +105,19 @@ class Cutout(object):
         long_label = labels.argmax(dim=1)
 
         # NOTICE cutout use long label and ori_crossentropy instead of soft-label and soft-label_crossentropy
-        return cutout_inputs, long_label, long_label
+        return cutout_inputs, labels, long_label
 
 
 class CutMix(object):
     def __init__(self, alpha=2, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+        """
+        CutMix augmentation arXiv:1905.04899
+        :param alpha: alpha
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+        :param device: CUDA or CPU
+        """
         self.alpha = alpha
         self.class_num = class_num
         self.batch_size = batch_size
@@ -146,6 +162,14 @@ class CutMix(object):
 
 class Mixup(object):
     def __init__(self, alpha=2, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+        """
+        Mixup augmentation arXiv:1710.09412
+        :param alpha: alpha
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+        :param device: CUDA or CPU
+        """
         self.alpha = alpha
         self.class_num = class_num
         self.batch_size = batch_size
@@ -180,7 +204,15 @@ class Mixup(object):
 
 
 class SaliencyMix(object):
-    def __init__(self, alpha=1, shuffle_p=0.5, class_num=2, batch_size=4, device='cpu'):
+    def __init__(self, alpha=1, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+        """
+        SaliencyMix augmentation arXiv:2006.01791
+        :param alpha: alpha
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+        :param device: CUDA or CPU
+        """
         # ori batch_size=128
         self.alpha = alpha
         self.class_num = class_num
@@ -221,6 +253,13 @@ class SaliencyMix(object):
 
 class ResizeMix(object):
     def __init__(self, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+        """
+        ResizeMix augmentation arXiv:2012.11101
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+        :param device: CUDA or CPU
+        """
         # ori batch_size=512
         self.class_num = class_num
         self.batch_size = batch_size
@@ -265,8 +304,22 @@ class ResizeMix(object):
 
 class FMix(FMixBase):
 
-    def __init__(self, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu', decay_power=3, alpha=1, size=(32, 32),
-                 max_soft=0.0, reformulate=False):
+    def __init__(self, shuffle_p=1.0, class_num=2, batch_size=4, decay_power=3, alpha=1, size=(32, 32),
+                 max_soft=0.0, reformulate=False, device='cpu'):
+        """
+        FMix augmentation arXiv:2002.12047
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param batch_size: batch_size of training
+
+        :param decay_power: decay_power
+        :param alpha: alpha
+        :param size: size of patch
+        :param max_soft: max_soft
+        :param reformulate: reformulate
+
+        :param device: CUDA or CPU
+        """
         # ori batch_size=128
         super().__init__(decay_power, alpha, size, max_soft, reformulate)
         self.class_num = class_num
@@ -307,11 +360,20 @@ class FMix(FMixBase):
 
 # CellMix
 class CellMix(object):
-    def __init__(self, shuffle_p=1.0, class_num=2, strategy='Group', device='cpu'):
+    def __init__(self, shuffle_p=1.0, class_num=2, strategy='In-place', group_shuffle_size=-1, device='cpu'):
+        """
+        CellMix augmentation arXiv:2301.11513
+        :param shuffle_p: chance of trigger augmentation
+        :param class_num: number of classification categories
+        :param strategy: 'In-place' or 'Random' to shuffle the relation patches within the batch
+        :param group_shuffle_size: the size of shuffling group in the batch, -1 to all
+        :param device: CUDA or CPU
+        """
         self.p = shuffle_p
-        self.CLS = class_num  # classification catagory number of the task
+        self.CLS = class_num  # classification category number of the task
         self.device = device
-        self.strategy = strategy  # 'Group' or 'Split' or 'Random'
+        self.strategy = strategy  # 'In-place' or 'Random'
+        self.group_shuffle_size = group_shuffle_size  # -1 for whole batch
 
     def __call__(self, inputs, labels, fix_position_ratio=0.5, puzzle_patch_size=32, act=True):
         """
@@ -323,11 +385,11 @@ class CellMix(object):
         in-place batch-wise shuffle operation is done by argsort random noise in dim 0.
         grouped-in-place batch-wise shuffle operation is done by argsort random noise in the batch dimension
 
-        input:
-        inputs: [B, 3, H, W], input image tensor
-        fix_position_ratio  float : ratio of least remaining part of patches
-        puzzle_patch_size  int : patch size of shuffle
-        act : trigger or not
+        :param inputs: input image tensor, size of [B, 3, H, W],
+        :param labels: long-int encoded cls idxes for a batch [B], value of CLS idx
+        :param fix_position_ratio:  float ratio of the least remaining part of patches
+        :param puzzle_patch_size:  int patch size of shuffle
+        :param act: set to be False to force not triggering CellMix in validation, set to True to trigger by chance p
 
         output: x, soft_label, long_label
         x : [B, 3, H, W] re-grouped image after cellmix augmentation
@@ -376,28 +438,38 @@ class CellMix(object):
         mask_fixed = torch.gather(mask, dim=1, index=ids_fix.unsqueeze(-1).repeat(1, 1, self.CLS))
         mask_puzzle = torch.gather(mask, dim=1, index=ids_puzzle.unsqueeze(-1).repeat(1, 1, self.CLS))
 
-        if self.strategy == 'Group' or self.strategy == 'Random':
-            # the group strategy shuffles the relation patches togather, from image to image
-            # cellmix moves the tokens to the same place but at different sample
+        if self.strategy == 'In-place' or self.strategy == 'Random':
+            # the In-place strategy shuffles the relation patches within their location, among the batch index
             B, num_shuffle_patches, D = x_puzzle.shape
-            shuffle_indices = torch.randperm(B, device=self.device)
-            x_puzzle = x_puzzle[shuffle_indices]
-            mask_puzzle = mask_puzzle[shuffle_indices]
 
-        elif self.strategy == 'Split':
-            # the split strategy shuffles the relation patches seperately, from image to image
-            # batch&patch-wise shuffle is needed for cellmix
-            B, num_shuffle_patches, D = x_puzzle.shape
             # create a noise tensor to prepare shuffle idx of puzzle patches
-            noise = torch.rand(B, num_shuffle_patches, device=self.device)  # [num_patches,B] noise in [0, 1]
-            # sort the noise matrix, obtain a index assignment for shuffle, now the shuffle dim is 0 (among the batch)
-            in_place_shuffle_indices = torch.argsort(noise, dim=0)
-            # ids_shuffle shape of [B,N], in B is idx
-            # torch.gather to shuffle
+            # [B, num_shuffle_patches] noise in [0, 1]
+            noise = torch.rand(B, num_shuffle_patches, device=self.device)
+
+            if self.group_shuffle_size == -1 or self.group_shuffle_size == B:  # CellMix-Split
+                # sort the noise matrix, obtain a index assignment for shuffle,
+                # shuffle dim 0 of entire noise (among all the batch)
+                in_place_shuffle_indices = torch.argsort(noise, dim=0)
+
+            else:  # CellMix-Group
+                assert B > self.group_shuffle_size > 0 and B % self.group_shuffle_size == 0
+                grouped_indices_list = []
+                for group_idx in range(B // self.group_shuffle_size):
+                    # group the noise by self.group_shuffle_size: [group_shuffle_size,N]
+                    grouped_noise = noise[group_idx * self.group_shuffle_size:
+                                          group_idx * self.group_shuffle_size + self.group_shuffle_size, :]
+                    # sort each grouped_noise matrix, obtain a index assignment for shuffle,
+                    # now the shuffle dim is 0 (among the batch within the group)
+                    grouped_indices = torch.argsort(grouped_noise, dim=0)
+                    # put grouped_noise matrix into the list
+                    grouped_indices_list.append(grouped_indices + self.group_shuffle_size * group_idx)
+                # stack(cat) the group indices(from list) back to tensor
+                in_place_shuffle_indices = torch.cat(grouped_indices_list, dim=0)
+
+            # torch.gather to achieve shuffle (taking all the idx base on a shuffled indices)
             x_puzzle = torch.gather(x_puzzle, dim=0, index=in_place_shuffle_indices.unsqueeze(-1).repeat(1, 1, D))
             mask_puzzle = torch.gather(mask_puzzle, dim=0,
                                        index=in_place_shuffle_indices.unsqueeze(-1).repeat(1, 1, self.CLS))
-
         else:
             print('not a valid CellMix strategy')
 
@@ -410,7 +482,7 @@ class CellMix(object):
         # torch.gather to generate restored binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, self.CLS))
 
-        # CellMix random strategy randomly shuffle the image patches (after cellmix-group)
+        # CellMix random strategy randomly shuffle the image patches (after cellmix in-place shuffle)
         if self.strategy == 'Random':
             B, num_patches, D = inputs.shape
             # create a noise tensor to prepare shuffle idx of puzzle patches
@@ -421,6 +493,8 @@ class CellMix(object):
             # torch.gather to shuffle
             inputs = torch.gather(inputs, dim=1, index=all_shuffle_indices.unsqueeze(-1).repeat(1, 1, D))
             # no need to torch the mask, because its patch-wise shuffle within each sample
+        else:  # when strategy == 'In-place'
+            pass
 
         # unpatchify to obtain puzzle images and their mask
         inputs = unpatchify(inputs, puzzle_patch_size)  # restore to image size：B,3,224,224/ B,3,384,384
@@ -448,17 +522,45 @@ def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4,
     :param device: cpu or cuda
 
     其中augmentation_name, class_num, batch_size, edge_size必须提供
+
+    return Augmentation
     """
-    if augmentation_name == 'CellMix-Group':
-        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Group', device=device)
+    if augmentation_name == 'CellMix-Group':  # Pair the images and in-place swap the relation tokens between each pair
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=2,
+                               device=device)
         return Augmentation
 
-    elif augmentation_name == 'CellMix-Split':
-        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Split', device=device)
+    elif augmentation_name == 'CellMix-Group4':
+        # Group 4 images and in-place swap the relation tokens within this group of 4 images
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=4,
+                               device=device)
         return Augmentation
 
-    elif augmentation_name == 'CellMix-Random':
-        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', device=device)
+    elif augmentation_name == 'CellMix-Split':  # In-place shuffle the relation tokens among the whole batch
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=-1,
+                               device=device)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-Random':  # Pair the images, shuffle the relation tokens among the pair,
+        # the location can be different instead of in-place
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=2,
+                               device=device)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-Random4':  # Group 4 images and shuffle the relation tokens among them,
+        # the location can be different instead of in-place
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=4,
+                               device=device)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-Self':  # Shuffle the relation tokens within the same image
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=1,
+                               device=device)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-All':  # Shuffle the relation tokens among the whole batch
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=-1,
+                               device=device)
         return Augmentation
 
     elif augmentation_name == 'Cutout':
@@ -474,7 +576,8 @@ def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4,
         return Augmentation
 
     elif augmentation_name == 'SaliencyMix':
-        Augmentation = SaliencyMix(alpha=1, shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device) # alpha实际为源代码中beta
+        Augmentation = SaliencyMix(alpha=1, shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                                   device=device)  # alpha实际为源代码中beta
         return Augmentation
 
     elif augmentation_name == 'ResizeMix':
@@ -483,23 +586,9 @@ def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4,
 
     elif augmentation_name == 'FMix':
         # FMIX p=1.0 beacuse the chance of trigger is determined inside its own design
-        Augmentation = FMix(shuffle_p=1.0, class_num=class_num, batch_size=batch_size, device=device,
-                            size=(edge_size, edge_size))
+        Augmentation = FMix(shuffle_p=1.0, class_num=class_num, batch_size=batch_size,
+                            size=(edge_size, edge_size), device=device)
         return Augmentation
-
-    elif augmentation_name == 'PuzzleMix':
-        return None
-        # fixme: all related parts have been taken out seperately
-        # Augmentation = PuzzleMix(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device)
-        # return Augmentation
-
-    elif augmentation_name == 'CoMix':
-        # TODO CoMix
-        return None
-
-    elif augmentation_name == 'RandomMix':
-        # TODO RandomMix
-        return None
 
     else:
         print('no valid counterparts augmentation selected')
@@ -515,9 +604,9 @@ if __name__ == '__main__':
 
     '''
 
-    x = torch.load("../temp-tensors/warwick.pt")
+    x = torch.load("./temp-tensors/warwick.pt")
     # print(x.shape)
-    label = torch.load("../temp-tensors/warwick_labels.pt")
+    label = torch.load("./temp-tensors/warwick_labels.pt")
     # print(label)
 
     # Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
