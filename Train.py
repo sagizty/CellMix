@@ -91,7 +91,7 @@ def train_model(model, dataloaders, criterion, optimizer, class_names, dataset_s
     temp_vac = 0.0
     best_epoch_idx = 1
 
-    epoch_loss = 0.0 # initial value for loss-drive
+    epoch_loss = 0.0  # initial value for loss-drive
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch + 1, num_epochs))
@@ -636,25 +636,29 @@ def main(args):
                                            batch_size=batch_size, edge_size=edge_size, device=device)
 
     if augmentation_name != 'CellMix-Split' and augmentation_name != 'CellMix-Group' and augmentation_name != 'CellMix-Random':
-        fix_position_ratio_scheduler = None
         puzzle_patch_size_scheduler = None
+        fix_position_ratio_scheduler = None
+
     else:
         # setting puzzle_patch_size and fix_position_ratio schedulers
-        fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
-                                                       warmup_epochs=0,
-                                                       basic_ratio=0.5,
-                                                       strategy=args.ratio_strategy,  # 'linear'
-                                                       fix_position_ratio=args.fix_position_ratio,
-                                                       threshold=args.loss_drive_threshold)
-
         puzzle_patch_size_scheduler = patch_scheduler(total_epoches=num_epochs,
                                                       warmup_epochs=0,
                                                       edge_size=edge_size,
                                                       basic_patch=16,
                                                       strategy=args.patch_strategy,  # 'random', 'linear' or 'loop'
-                                                      threshold=args.loss_drive_threshold,
+                                                      loop_round_epoch=args.loop_round_epoch
+                                                      if args.patch_strategy == 'loop' or
+                                                         args.patch_strategy == 'loss_back' or
+                                                         args.patch_strategy == 'loss_hold' else 1,
                                                       fix_patch_size=args.fix_patch_size,  # 16,32,48,64,96,128,192
                                                       patch_size_jump=args.patch_size_jump)  # 'odd' or 'even'
+
+        fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
+                                                       warmup_epochs=0,
+                                                       basic_ratio=0.5,
+                                                       strategy=args.ratio_strategy,  # 'linear'
+                                                       fix_position_ratio=args.fix_position_ratio,
+                                                       loop_round_epoch=args.loop_round_epoch)
 
     # Default cross entrphy of one-hot outputs: [B,CLS] and idx label [B] long tensor
     # augmentation loss is SoftlabelCrossEntropy
@@ -800,10 +804,13 @@ def get_args_parser():
     parser.add_argument('--augmentation_name', default=None, type=str, help='Online augmentation name')
     parser.add_argument('--ratio_strategy', default=None, type=str, help='CellMix ratio scheduler strategy')
     parser.add_argument('--patch_strategy', default=None, type=str, help='CellMix patch scheduler strategy')
-    parser.add_argument('--loss_drive_threshold', default=4.0, type=float, help='CellMix loss_drive_threshold')
-    
+    parser.add_argument('--loop_round_epoch', default=4, type=int, help='CellMix loss_drive_threshold is designed to '
+                                                                        'record the epoch bandwidth for epochs at '
+                                                                        'the same patch size')
+
     # CellMix ablation: fix_position_ratio fix_patch_size  patch_size_jump
-    parser.add_argument('--fix_position_ratio', default=None, type=float, help='CellMix ablation using fix_position_ratio')
+    parser.add_argument('--fix_position_ratio', default=None, type=float,
+                        help='CellMix ablation using fix_position_ratio')
     parser.add_argument('--fix_patch_size', default=None, type=int, help='CellMix ablation using fix_patch_size')
     parser.add_argument('--patch_size_jump', default=None, type=str, help='CellMix patch_size_jump strategy')
 
