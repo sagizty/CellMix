@@ -1,5 +1,5 @@
 # CellMix
-[[`Demo`](https://github.com/sagizty/CellMix/blob/main/CellMix%20Demo.ipynb)] [[`Paper`](https://arxiv.org/abs/2301.11513)] [[`BibTeX`](#Citation)]
+[[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)] [[`Demo`](https://github.com/sagizty/CellMix/blob/main/CellMix%20Demo.ipynb)] [[`Paper`](https://arxiv.org/abs/2301.11513)] [[`BibTeX`](#Citation)]
 
 ## Introduction
 Pathological image analysis, enhanced by deep learning, is critical for advancing diagnostic accuracy and improving patient outcomes. These images contain biomedical objects, or "instances," such as cells, tissues, and other structures across multiple scales. Their identities and spatial relationships significantly influence classification performance.
@@ -12,11 +12,10 @@ Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 org
 
 <img width="1505" alt="CellMix_Structure" src="https://github.com/user-attachments/assets/7a47c014-0e15-4fb8-94ac-feebbced8a47">
 <img width="806" alt="LossDrive_Structure" src="https://github.com/user-attachments/assets/4b51c7e5-7d16-4989-9514-3c626a6b25ab">
-![CAM_augmented](https://github.com/user-attachments/assets/9dc10221-ed09-4a01-9349-772f58d061b5)
 <img width="1291" alt="CAM_augmented_Appendix" src="https://github.com/user-attachments/assets/3dccb8c3-de2e-4bba-a79b-ae54fc9537e8">
 
-## USAGE
-You can import the whole set of online data augmentation methods from [[`CellMix/utils/online_augmentations.py`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)]
+## USAGE (plug-and-play)
+You can import the whole set of online data augmentation methods from [[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)]
 
 augmentation = get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu')
 
