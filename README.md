@@ -19,8 +19,9 @@ You can import the whole set of online data augmentation methods from [[`plug-in
 
 augmentation = get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu')
 
-and apply the augmentation in the training loop:
-    augment_images, augment_labels, GT_labels = Augmentation(input_images, input_labels)
+and apply the augmentations in the training loop:
+
+augment_images, augment_labels, GT_labels = Augmentation(input_images, input_labels)
 
 To apply the dynamicaly self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
 
