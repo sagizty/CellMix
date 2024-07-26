@@ -16,14 +16,14 @@ Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 org
 <img width="1291" alt="CAM_augmented_Appendix" src="https://github.com/user-attachments/assets/3dccb8c3-de2e-4bba-a79b-ae54fc9537e8">
 
 ## USAGE
-you can import the whole set of online data augmentation methods from CellMix/utils/online_augmentations.py
+You can import the whole set of online data augmentation methods from [[`CellMix/utils/online_augmentations.py`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)]
 
 augmentation = get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu')
 
 and apply the augmentation in the training loop:
     augment_images, augment_labels, GT_labels = Augmentation(input_images, input_labels)
 
-to dynamicaly apply the self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
+To apply the dynamicaly self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
 
 
 # Citation
