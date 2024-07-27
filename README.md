@@ -17,12 +17,12 @@ Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 org
 ## USAGE (plug-and-play)
 You can import the whole set of online data augmentation methods from [[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)]
 
+```Python
+from online_augmentations import get_online_augmentation
 augmentation = get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu')
-
-and apply the augmentations in the training loop:
-
+# and apply the augmentations in the training loop:
 augment_images, augment_labels, GT_labels = Augmentation(input_images, input_labels)
-
+```
 To apply the dynamicaly self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
 
 
