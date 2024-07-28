@@ -204,17 +204,17 @@ class Mixup(object):
 
 
 class SaliencyMix(object):
-    def __init__(self, alpha=1, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
+    def __init__(self, beta=1, shuffle_p=1.0, class_num=2, batch_size=4, device='cpu'):
         """
         SaliencyMix augmentation arXiv:2006.01791
-        :param alpha: alpha
+        :param beta: beta
         :param shuffle_p: chance of trigger augmentation
         :param class_num: number of classification categories
         :param batch_size: batch_size of training
         :param device: CUDA or CPU
         """
         # ori batch_size=128
-        self.alpha = alpha
+        self.beta = beta
         self.class_num = class_num
         self.batch_size = batch_size
         # calibrate the trigger chance of p, new ratio is the change of operation occur in each batch
@@ -231,12 +231,12 @@ class SaliencyMix(object):
         shuffled_labels = labels[indices].to(self.device)
 
         for i in range(self.batch_size):
-            if np.random.randint(0, 101) > 100 * self.p or (not act) or self.alpha <= 0:
+            if np.random.randint(0, 101) > 100 * self.p or (not act) or self.beta <= 0:
                 # trigger the augmentation operation
                 lam_list.append(-1)
                 continue
 
-            lam = np.random.beta(self.alpha, self.alpha)
+            lam = np.random.beta(self.beta, self.beta)
             bbx1, bby1, bbx2, bby2 = saliency_bbox(shuffled_inputs[i], lam)  # get random bbox
 
             saliencymix_inputs[i, :, bbx1:bbx2, bby1:bby2] = \
@@ -327,9 +327,10 @@ class FMix(FMixBase):
         self.p = shuffle_p
         self.device = torch.device(device)
 
-    def __call__(self, inputs, labels, alpha=1, act=True):
+    def __call__(self, inputs, labels, alpha=None, act=True):
+        alpha = alpha or self.alpha
         # Sample mask and generate random permutation
-        lam, mask = sample_mask(self.alpha, self.decay_power, self.size, self.max_soft, self.reformulate)
+        lam, mask = sample_mask(alpha, self.decay_power, self.size, self.max_soft, self.reformulate)
         mask = torch.from_numpy(mask).float().to(self.device)
 
         labels = torch.eye(self.class_num).to(self.device)[labels, :]  # one-hot hard label
@@ -511,83 +512,105 @@ class CellMix(object):
 
 
 # ask func
-def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu'):
+def get_online_augmentation(augmentation_name, p=0.5, class_num=2, batch_size=4, edge_size=224, device='cpu', **kwargs):
     """
-    :param augmentation_name: name of data-augmentation method
+    Config an online data augmentation module
+
+    Notice that augmentation_name, class_num, batch_size, edge_size have to be specified
+
+    :param augmentation_name: name of data-augmentation method, this repo supports:
+            CellMix (and the ablations) CutOut, CutMix, MixUp, ResizeMix, SaliencyMix, and FMix
+
     :param p: chance of triggering
-    :param class_num: classification task num
+            set to 0.5 for trigging at 50% in the training loop
+            set to 1.0 for trigging at 100% in the visualization check
+
+    :param class_num: classification task's category num
+
     :param batch_size: batch size
-    :param edge_size: edge size of img
+
+    :param edge_size: edge size of image
 
     :param device: cpu or cuda
 
-    其中augmentation_name, class_num, batch_size, edge_size必须提供
+    :param kwargs: for other arbitrary configurations
 
     return Augmentation
     """
-    if augmentation_name == 'CellMix-Group':  # Pair the images and in-place swap the relation tokens between each pair
+    if augmentation_name == 'CellMix':
+        # Group the group_shuffle_size images and in-place swap the relation tokens among each other
+        Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place',
+                               device=device, **kwargs)
+        return Augmentation
+
+    elif augmentation_name == 'CellMix-Group':
+        # Pair the images and in-place swap the relation tokens between each pair
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=2,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-Group4':
         # Group 4 images and in-place swap the relation tokens within this group of 4 images
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=4,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-Split':  # In-place shuffle the relation tokens among the whole batch
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='In-place', group_shuffle_size=-1,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-Random':  # Pair the images, shuffle the relation tokens among the pair,
         # the location can be different instead of in-place
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=2,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-Random4':  # Group 4 images and shuffle the relation tokens among them,
         # the location can be different instead of in-place
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=4,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-Self':  # Shuffle the relation tokens within the same image
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=1,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CellMix-All':  # Shuffle the relation tokens among the whole batch
         Augmentation = CellMix(shuffle_p=p, class_num=class_num, strategy='Random', group_shuffle_size=-1,
-                               device=device)
+                               device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'Cutout':
-        Augmentation = Cutout(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device)
+        Augmentation = Cutout(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                              device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'CutMix':
-        Augmentation = CutMix(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device)
+        Augmentation = CutMix(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                              device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'Mixup':
-        Augmentation = Mixup(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device)
+        Augmentation = Mixup(alpha=2, shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                             device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'SaliencyMix':
-        Augmentation = SaliencyMix(alpha=1, shuffle_p=p, class_num=class_num, batch_size=batch_size,
-                                   device=device)  # alpha实际为源代码中beta
+        Augmentation = SaliencyMix(beta=1, shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                                   device=device, **kwargs)  # this one use beta instead of alpha
         return Augmentation
 
     elif augmentation_name == 'ResizeMix':
-        Augmentation = ResizeMix(shuffle_p=p, class_num=class_num, batch_size=batch_size, device=device)
+        Augmentation = ResizeMix(shuffle_p=p, class_num=class_num, batch_size=batch_size,
+                                 device=device, **kwargs)
         return Augmentation
 
     elif augmentation_name == 'FMix':
         # FMIX p=1.0 beacuse the chance of trigger is determined inside its own design
         Augmentation = FMix(shuffle_p=1.0, class_num=class_num, batch_size=batch_size,
-                            size=(edge_size, edge_size), device=device)
+                            size=(edge_size, edge_size), device=device, **kwargs)
         return Augmentation
 
     else:
@@ -603,15 +626,15 @@ if __name__ == '__main__':
     print(labels, GT_labels)
 
     '''
-
-    x = torch.load("./temp-tensors/warwick.pt")
+    # a demo tensor of 4 color chucks
+    x = torch.load("./temp-tensors/color.pt")
     # print(x.shape)
-    label = torch.load("./temp-tensors/warwick_labels.pt")
+    label = torch.load("./temp-tensors/color_labels.pt")
     # print(label)
 
     # Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
     # output, labels, GT_labels = Augmentation(x, label, act=True)
-    Augmentation = get_online_augmentation('CellMix-Group', p=1, class_num=2)
+    Augmentation = get_online_augmentation('CellMix-Group', p=1, class_num=4)
     output, labels, GT_labels = Augmentation(x, label, fix_position_ratio=0.5, puzzle_patch_size=32, act=True)
 
     print(labels, GT_labels)
