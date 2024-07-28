@@ -2,7 +2,7 @@
 from online_augmentations import get_online_augmentation
 from schedulers import ratio_scheduler, patch_scheduler
 
-# STEP 1: set up the Augmentation for triggering online data augmentation in training
+# STEP 1: Set up the Augmentation for triggering online data augmentation in training
 Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        p=0.5,  # this is the triggering chance of activation
                                        class_num=2,
@@ -10,7 +10,7 @@ Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        edge_size=224,
                                        device='cpu')
 
-# STEP 2: set up the Augmentation for triggering online data augmentation in training
+# STEP 2: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
 puzzle_patch_size_scheduler = patch_scheduler(total_epochs=num_epochs,
                                               warmup_epochs=warmup_epochs,
                                               edge_size=224,
@@ -74,7 +74,7 @@ ratio_strategy (default is 'loop')
         than the current curriculum plan. 
 '''
 
-# STEP 3: apply the augmentations in the training loop:
+# STEP 3: Apply the augmentations in the training loop:
 if phase == 'train':
     # cellmix
     if fix_position_ratio_scheduler is not None and puzzle_patch_size_scheduler is not None:
