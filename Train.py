@@ -1,5 +1,5 @@
 """
-Training   release Script  ver： Feb 12th 19:00
+Training   release Script  ver： Jul 28th 13:00
 
 dataset structure: ImageNet
 image folder dataset is used.
@@ -91,7 +91,7 @@ def train_model(model, dataloaders, criterion, optimizer, class_names, dataset_s
     temp_vac = 0.0
     best_epoch_idx = 1
 
-    epoch_loss = 0.0 # initial value for loss-drive
+    epoch_loss = 0.0  # initial value for loss-drive
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch + 1, num_epochs))
@@ -640,14 +640,14 @@ def main(args):
         puzzle_patch_size_scheduler = None
     else:
         # setting puzzle_patch_size and fix_position_ratio schedulers
-        fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
+        fix_position_ratio_scheduler = ratio_scheduler(total_epochs=num_epochs,
                                                        warmup_epochs=0,
                                                        basic_ratio=0.5,
                                                        strategy=args.ratio_strategy,  # 'linear'
                                                        fix_position_ratio=args.fix_position_ratio,
                                                        threshold=args.loss_drive_threshold)
 
-        puzzle_patch_size_scheduler = patch_scheduler(total_epoches=num_epochs,
+        puzzle_patch_size_scheduler = patch_scheduler(total_epochs=num_epochs,
                                                       warmup_epochs=0,
                                                       edge_size=edge_size,
                                                       basic_patch=16,
@@ -801,9 +801,10 @@ def get_args_parser():
     parser.add_argument('--ratio_strategy', default=None, type=str, help='CellMix ratio scheduler strategy')
     parser.add_argument('--patch_strategy', default=None, type=str, help='CellMix patch scheduler strategy')
     parser.add_argument('--loss_drive_threshold', default=4.0, type=float, help='CellMix loss_drive_threshold')
-    
+
     # CellMix ablation: fix_position_ratio fix_patch_size  patch_size_jump
-    parser.add_argument('--fix_position_ratio', default=None, type=float, help='CellMix ablation using fix_position_ratio')
+    parser.add_argument('--fix_position_ratio', default=None, type=float,
+                        help='CellMix ablation using fix_position_ratio')
     parser.add_argument('--fix_patch_size', default=None, type=int, help='CellMix ablation using fix_patch_size')
     parser.add_argument('--patch_size_jump', default=None, type=str, help='CellMix patch_size_jump strategy')
 
