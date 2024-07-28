@@ -26,7 +26,7 @@ from utils.schedulers import ratio_scheduler, patch_scheduler
 
 This is a pseudo-code demo for how to use CellMix online data augmentation
 
-### STEP 1: set up the Augmentation for triggering online data augmentation in training
+### STEP 1: Set up the Augmentation for triggering online data augmentation in training
 ```Python
 Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        p=0.5,  # this is the triggering chance of activation
@@ -102,7 +102,7 @@ fix_position_ratio_scheduler = ratio_scheduler(
 This setup ensures that the augmentation strategies dynamically adapt to the training process, optimizing learning efficiency and performance.
 
 
-### STEP 3: apply the augmentations in the training loop:
+### STEP 3: Apply the augmentations in the training loop:
 ```Python
 if phase == 'train':
     # cellmix
