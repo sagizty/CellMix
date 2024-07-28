@@ -1,8 +1,12 @@
 """
-Schedulers   Script  ver： May 19th 12:00
-lr_scheduler from MAE code.
-https://github.com/facebookresearch/mae
-puzzle_patch_scheduler is used to arrange patch size for multi-scale learning
+Schedulers   Script  ver： Jul 28th 13:00
+
+patch_scheduler is used to regulate patch size for multi-scale learning
+
+ratio_scheduler is used to regulate the complexity of curriculum learning:
+    this fix-position ratio controls the percentage of patches being fixed in the shuffling!
+        higher ratio -> more patches are fixed -> less patches are shuffled -> lower complexity -> easier to learn
+        lower ratio -> less patches are fixed -> more patches are shuffled -> higher complexity -> harder to learn
 """
 
 import math
@@ -62,20 +66,62 @@ class patch_scheduler:
     the patch list is automatically get
     """
 
-    def __init__(self, total_epoches=200, warmup_epochs=20, edge_size=384, basic_patch=16, strategy=None,
-                 threshold=4.0, reducing_factor=0.933, fix_patch_size=None, patch_size_jump=None):
+    def __init__(self, total_epochs=200, warmup_epochs=20, edge_size=384, basic_patch=16, strategy=None,
+                 threshold=4.0, loss_reducing_factor=0.933, fix_patch_size=None, patch_size_jump=None):
+        """
+
+        :param total_epochs:
+        :param warmup_epochs:
+
+        :param edge_size: image input size
+
+        :param basic_patch: basic embedding patch for transformer (usually 16 or 14)
+                            this helps the shuffling to maintain the embedding for each patch token
+
+        :param strategy: curriculum plans of learning the different patch sizes
+                1.	linear:
+                        This strategy is a basic curriculum adjusting the patch size from small to large.
+                        It manages the fix-position ratio plan in the epochs after the warmup_epochs.
+                2.	reverse:
+                        This strategy is a basic curriculum adjusting the patch size from large to small.
+                        It manages the fix-position ratio plan in the epochs after the warmup_epochs.
+                3.	random:
+                        This strategy involves randomly choosing a specific patch size for each epoch.
+                4.	loop:
+                        This strategy involves tuning the patch size from small to large in a loop
+                        (e.g. a loop of 7 epochs to go through the patch size list), changing the patch size
+                        at most once every epoch.
+                5.	loss-driven ('loss_hold' or 'loss_back'):
+                        This strategy follows the reverse method. However, the patch size is
+                        fixed to the current value if the loss-driven strategy is activated for changing
+                        the fix-position ratio. It maintains the shuffling with the instances at the same scale.
+                        Therefore, if the loss-driven is activated for the schedulers, the model is guided to
+                        learn the same or more fixed patches. In this case the fix-ratio is fixed or increase,
+                        which become an easier complexity by introducing less outer-sample instances.
+
+        :param threshold: a threshold for compare loss and decide how to adjust curriculum,
+                          if None, it will be obtained by estimated from the warmup epochs
+
+        :param loss_reducing_factor: a factor for reducing the threshold as the complexity should
+                                     be increased with training
+
+        :param fix_patch_size: if specified, fix the patch size to this value
+
+        :param patch_size_jump: if specified, the list of patch size will be selected by 'odd' or 'even'
+                                this is designed for ablation on the 'smoother learning' with more patch sizes
+        """
         super().__init__()
 
         self.strategy = strategy
 
-        self.total_epoches = total_epoches
+        self.total_epochs = total_epochs
         self.warmup_epochs = warmup_epochs
 
-        # automaticly build legal patch list, from small to big size
+        # automatically build legal patch list, from small to big size
         self.patch_list = defactor(factor(edge_size), basic_patch)
 
-        self.threshold = threshold
-        self.reducing_factor = reducing_factor
+        self.threshold = threshold  # a threshold for compare loss and decide how to adjust curriculum
+        self.loss_reducing_factor = loss_reducing_factor
         self.fix_patch_size = fix_patch_size
 
         # from small to big patch, No need for patch at all fig level
@@ -95,7 +141,7 @@ class patch_scheduler:
         else:
             pass
 
-        if self.strategy in ['reverse', 'loss_back', 'loss_hold']:  # start from big(easy) to samll(complex)
+        if self.strategy in ['reverse', 'loss_back', 'loss_hold']:  # start from big to small
             self.patch_list.sort(reverse=True)
 
         if self.strategy is None or self.strategy == 'fixed':
@@ -113,7 +159,7 @@ class patch_scheduler:
                 puzzle_patch_size = 32  # fixed size for warmup
             else:
                 puzzle_patch_size = self.patch_list[min(int((epoch - self.warmup_epochs)
-                                                            / (self.total_epoches - self.warmup_epochs)
+                                                            / (self.total_epochs - self.warmup_epochs)
                                                             * len(self.patch_list)), len(self.patch_list) - 1)]
 
         elif self.strategy == 'loop':
@@ -135,18 +181,18 @@ class patch_scheduler:
             else:
                 if loss == 0.0:
                     puzzle_patch_size = self.patch_list[min(int((epoch - self.warmup_epochs)
-                                                                / (self.total_epoches - self.warmup_epochs)
+                                                                / (self.total_epochs - self.warmup_epochs)
                                                                 * len(self.patch_list)), len(self.patch_list) - 1)]
 
                 elif loss < self.threshold:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    / (self.total_epochs - self.warmup_epochs)
                                                                     * len(self.patch_list)) + 1, 0),
                                                             len(self.patch_list) - 1)]
-                    self.threshold *= self.reducing_factor
+                    self.threshold *= self.loss_reducing_factor
                 else:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    / (self.total_epochs - self.warmup_epochs)
                                                                     * len(self.patch_list)) - 1, 0),
                                                             len(self.patch_list) - 1)]
 
@@ -156,18 +202,18 @@ class patch_scheduler:
             else:
                 if loss == 0.0:
                     puzzle_patch_size = self.patch_list[min(int((epoch - self.warmup_epochs)
-                                                                / (self.total_epoches - self.warmup_epochs)
+                                                                / (self.total_epochs - self.warmup_epochs)
                                                                 * len(self.patch_list)), len(self.patch_list) - 1)]
 
                 elif loss < self.threshold:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    / (self.total_epochs - self.warmup_epochs)
                                                                     * len(self.patch_list)) + 1, 0),
                                                             len(self.patch_list) - 1)]
-                    self.threshold *= self.reducing_factor
+                    self.threshold *= self.loss_reducing_factor
                 else:
                     puzzle_patch_size = self.patch_list[min(max(int((epoch - self.warmup_epochs)
-                                                                    / (self.total_epoches - self.warmup_epochs)
+                                                                    / (self.total_epochs - self.warmup_epochs)
                                                                     * len(self.patch_list)), 0),
                                                             len(self.patch_list) - 1)]
 
@@ -178,21 +224,63 @@ class patch_scheduler:
         return puzzle_patch_size
 
 
-'''
-scheduler = puzzle_patch_scheduler(strategy='reverse')
-epoch = 182
-puzzle_patch_size = scheduler(epoch)
-print(puzzle_patch_size)
-'''
-
-
 class ratio_scheduler:
     """
-        this is used to drive the fix position ratio by loss and epoch
+    ratio_scheduler is used to regulate the complexity of curriculum learning:
+    this fix-position ratio controls the percentage of patches being fixed in the shuffling!
+        higher ratio -> more patches are fixed -> less patches are shuffled -> lower complexity -> easier to learn
+        lower ratio -> less patches are fixed -> more patches are shuffled -> higher complexity -> harder to learn
+
+    the scheduler is used to drive the fix position ratio by loss and epoch
         the ratio is control by ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2
     """
-    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, fix_position_ratio=None,
-                 threshold=4.0, loss_reducing_factor=0.933, ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2):
+    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, threshold=4.0,
+                 fix_position_ratio=None, loss_reducing_factor=0.933, ratio_floor_factor=0.5,
+                 upper_limit=0.9, lower_limit=0.2):
+        """
+
+        :param total_epoches:
+        :param warmup_epochs:
+
+        :param basic_ratio: basic ratio of fixed patches in learning with augmented samples
+
+        :param strategy: loss-driven strategy for dynamic adjusting the complexity of shuffling
+                1.	decay ('decay' or 'ratio-decay'):
+                    This strategy is a basic curriculum plan that reduce the fix-position-ratio linearly.
+                    It manages the fix-position ratio plan in the epochs after the warmup_epochs.
+
+                2.	loss-driven ('loss_hold' or 'loss_back'):
+                    This strategy dynamically adjusts the fix-position-ratio curriculum based on the
+                    loss performance on the current epoch after warmup_epochs.
+
+                    Firstly, When the loss value l is less than the given threshold T,
+                    it indicates that the model has sufficiently learned the current complexity.
+                    Such a case suggests that the current shuffling need to be more complex
+                    than the current curriculum plan. Therefore, we increase difficulty by
+                    reducing the fix-position ratio following the ratio_floor_factor.
+
+                    On the contrary, when the loss value l exceeds the expected threshold T, it suggests that
+                    the current complexity is too hard for the model. We employ two strategies
+                    ('loss_hold' or 'loss_back') to control the schedule.
+                    The first is the loss-hold strategy, which keeps the fix-position ratio unchanged
+                    in the next epoch and continues to learn the current curriculum.
+                    The second is the loss-back strategy, which reduces the complexity by setting it 10% higher
+                    than the current curriculum plan.
+
+        :param threshold: a threshold for compare loss and decide how to adjust curriculum,
+                          if None, it will be obtained by estimated from the warmup epochs
+
+        :param fix_position_ratio: if specified, set the ratio to this value instead of dynamic adjusting
+
+        :param loss_reducing_factor: a factor for reducing the threshold as the complexity should
+                                     be increased with training
+
+        :param ratio_floor_factor: the reducing factor for adjusting the fix_position_ratio curriculum,
+                                   as the complexity should be increased with training
+
+        :param upper_limit: the lower_limit value of adjusting the fix_position_ratio
+        :param lower_limit: the lower_limit value of adjusting the fix_position_ratio
+        """
 
         # fixme basic_ratio and fix_position_ratio(when stage is fixed) is a bit conflicting, not good enough
         super().__init__()
@@ -280,11 +368,3 @@ class ratio_scheduler:
             fix_position_ratio = self.fix_position_ratio or self.basic_ratio
 
         return fix_position_ratio
-
-
-'''
-scheduler = puzzle_fix_position_ratio_scheduler(strategy='reverse')
-epoch = 102
-fix_position_ratio = scheduler(epoch)
-print(fix_position_ratio)
-'''
