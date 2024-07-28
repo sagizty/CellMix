@@ -11,8 +11,6 @@ Through mathematical exploration, we highlight the essence of shuffling to expli
 Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 organs across 4 magnification scales, demonstrate state-of-the-art performance. Numerous ablation studies confirm its robust generalizability and scalability, providing novel insights into pathological image analysis and significant potential to enhance diagnostic precision. The proposed online data augmentation module is open-sourced as a plug-and-play tool to foster further research and clinical applications. It brings novel insights that potentially transform pathology image modeling approaches.
 
 <img width="1505" alt="CellMix_Structure" src="https://github.com/user-attachments/assets/7a47c014-0e15-4fb8-94ac-feebbced8a47">
-<img width="806" alt="LossDrive_Structure" src="https://github.com/user-attachments/assets/4b51c7e5-7d16-4989-9514-3c626a6b25ab">
-<img width="1291" alt="CAM_augmented_Appendix" src="https://github.com/user-attachments/assets/3dccb8c3-de2e-4bba-a79b-ae54fc9537e8">
 
 ## USAGE (plug-and-play)
 You can import the whole set from pip [pip install CellMix]
@@ -37,10 +35,21 @@ Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        edge_size=224,
                                        device='cpu')
 ```
+augmentation_name: name of data-augmentation method, this repo supports:
+- CellMix (and the ablations)
+- CutOut
+- CutMix
+- MixUp
+- ResizeMix
+- SaliencyMix
+- FMix
 
+<img width="1291" alt="CAM_augmented_Appendix" src="https://github.com/user-attachments/assets/3dccb8c3-de2e-4bba-a79b-ae54fc9537e8">
 
-### STEP 2: Set Up the Augmentation for Online Data Augmentation During Training
+### STEP 2: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
+<img width="806" alt="LossDrive_Structure" src="https://github.com/user-attachments/assets/4b51c7e5-7d16-4989-9514-3c626a6b25ab">
 
+#### Patch Strategy (default is 'loop'):
 ```python
 puzzle_patch_size_scheduler = patch_scheduler(
     total_epochs=num_epochs,
@@ -53,9 +62,6 @@ puzzle_patch_size_scheduler = patch_scheduler(
     patch_size_jump=None  # Specify to 'odd' or 'even'
 )
 ```
-
-#### Patch Strategy (default is 'loop'):
-
 1. **linear**: 
    - Adjusts the patch size from small to large, managing the fix-position ratio plan after the warmup epochs.
 
@@ -71,6 +77,8 @@ puzzle_patch_size_scheduler = patch_scheduler(
 5. **loss-driven** ('loss_hold' or 'loss_back'):
    - Follows the reverse method but fixes the patch size if the loss-driven strategy is activated. This maintains the shuffling with instances at the same scale, guiding the model to learn the same or more fixed patches, reducing complexity by introducing fewer outer-sample instances.
 
+
+#### Ratio Strategy (default is 'loop'):
 ```python
 fix_position_ratio_scheduler = ratio_scheduler(
     total_epochs=num_epochs,
@@ -81,9 +89,6 @@ fix_position_ratio_scheduler = ratio_scheduler(
     fix_position_ratio=None  # Specify to fix
 )
 ```
-
-#### Ratio Strategy (default is 'loop'):
-
 1. **decay** ('decay' or 'ratio-decay'):
    - A basic curriculum plan that reduces the fix-position ratio linearly, managing the fix-position ratio plan after the warmup epochs.
 
