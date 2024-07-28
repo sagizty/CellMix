@@ -234,12 +234,12 @@ class ratio_scheduler:
     the scheduler is used to drive the fix position ratio by loss and epoch
         the ratio is control by ratio_floor_factor=0.5, upper_limit=0.9, lower_limit=0.2
     """
-    def __init__(self, total_epoches=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, threshold=4.0,
+    def __init__(self, total_epochs=200, warmup_epochs=20, basic_ratio=0.25, strategy=None, threshold=4.0,
                  fix_position_ratio=None, loss_reducing_factor=0.933, ratio_floor_factor=0.5,
                  upper_limit=0.9, lower_limit=0.2):
         """
 
-        :param total_epoches:
+        :param total_epochs:
         :param warmup_epochs:
 
         :param basic_ratio: basic ratio of fixed patches in learning with augmented samples
@@ -286,7 +286,7 @@ class ratio_scheduler:
         super().__init__()
         self.strategy = strategy
 
-        self.total_epoches = total_epoches
+        self.total_epochs = total_epochs
         self.warmup_epochs = warmup_epochs
 
         self.basic_ratio = basic_ratio
@@ -308,9 +308,9 @@ class ratio_scheduler:
                 max_ratio = min(3 * self.basic_ratio, self.upper_limit)  # upper-limit of 0.9
                 min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
 
-                fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                               - (epoch - self.warmup_epochs)) /
-                                             (self.total_epoches - self.warmup_epochs)
+                                             (self.total_epochs - self.warmup_epochs)
                                              * max_ratio, min_ratio), max_ratio)
 
         elif self.strategy == 'loss_back':
@@ -322,20 +322,20 @@ class ratio_scheduler:
                 max_ratio = min(3 * self.basic_ratio, self.upper_limit)
                 min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
                 if loss == 0.0:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio, min_ratio), max_ratio)
                 elif loss < self.threshold:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio * 0.9, min_ratio), max_ratio)
                     self.threshold *= self.loss_reducing_factor
                 else:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio * 1.1, min_ratio), max_ratio)
 
         elif self.strategy == 'loss_hold':
@@ -348,20 +348,20 @@ class ratio_scheduler:
                 min_ratio = max(self.basic_ratio * self.ratio_floor_factor, self.lower_limit)
 
                 if loss == 0.0:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio, min_ratio), max_ratio)
                 elif loss < self.threshold:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio * 0.9, min_ratio), max_ratio)
                     self.threshold *= self.loss_reducing_factor
                 else:
-                    fix_position_ratio = min(max(((self.total_epoches - self.warmup_epochs)
+                    fix_position_ratio = min(max(((self.total_epochs - self.warmup_epochs)
                                                   - (epoch - self.warmup_epochs)) /
-                                                 (self.total_epoches - self.warmup_epochs)
+                                                 (self.total_epochs - self.warmup_epochs)
                                                  * max_ratio, min_ratio), max_ratio)
 
         else:  # basic_ratio
