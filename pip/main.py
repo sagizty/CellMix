@@ -42,7 +42,7 @@ patch_strategy (default is 'loop')
                 which become an easier complexity by introducing less outer-sample instances.
 '''
 
-fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
+fix_position_ratio_scheduler = ratio_scheduler(total_epochs=num_epochs,
                                                warmup_epochs=warmup_epochs,
                                                basic_ratio=0.5,
                                                strategy=ratio_strategy,  # 'linear'
