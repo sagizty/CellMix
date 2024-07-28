@@ -35,66 +35,62 @@ Augmentation = get_online_augmentation(augmentation_name='CellMix',
 ```
 
 
-### STEP 2: set up the Augmentation for triggering online data augmentation in training
-```Python
-puzzle_patch_size_scheduler = patch_scheduler(total_epochs=num_epochs,
-                                              warmup_epochs=warmup_epochs,
-                                              edge_size=224,
-                                              basic_patch=16,
-                                              strategy=patch_strategy,  # 'loop'
-                                              threshold=loss_drive_threshold,
-                                              fix_patch_size=None,  # specify to fix to 16,32,48,64,96,128,192
-                                              patch_size_jump=None)  # specify to 'odd' or 'even'
-```
-patch_strategy (default is 'loop')
-        1.	linear: 
-                This strategy is a basic curriculum adjusting the patch size from small to large.
-                It manages the fix-position ratio plan in the epochs after the warmup_epochs.
-        2.	reverse: 
-                This strategy is a basic curriculum adjusting the patch size from large to small.
-                It manages the fix-position ratio plan in the epochs after the warmup_epochs.
-        3.	random: 
-                This strategy involves randomly choosing a specific patch size for each epoch.
-        4.	loop: 
-                This strategy involves tuning the patch size from small to large in a loop
-                (e.g. a loop of 7 epochs to go through the patch size list), changing the patch size
-                at most once every epoch.
-        5.	loss-driven ('loss_hold' or 'loss_back'):
-                This strategy follows the reverse method. However, the patch size is
-                fixed to the current value if the loss-driven strategy is activated for changing
-                the fix-position ratio. It maintains the shuffling with the instances at the same scale.
-                Therefore, if the loss-driven is activated for the schedulers, the model is guided to
-                learn the same or more fixed patches. In this case the fix-ratio is fixed or increase,
-                which become an easier complexity by introducing less outer-sample instances.
+### STEP 2: Set Up the Augmentation for Online Data Augmentation During Training
 
-```Python
-fix_position_ratio_scheduler = ratio_scheduler(total_epoches=num_epochs,
-                                               warmup_epochs=warmup_epochs,
-                                               basic_ratio=0.5,
-                                               strategy=ratio_strategy,  # 'linear'
-                                               threshold=loss_drive_threshold,
-                                               fix_position_ratio=None  # specify to fix
-                                               )
+```python
+puzzle_patch_size_scheduler = patch_scheduler(
+    total_epochs=num_epochs,
+    warmup_epochs=warmup_epochs,
+    edge_size=224,
+    basic_patch=16,
+    strategy=patch_strategy,  # 'loop'
+    threshold=loss_drive_threshold,
+    fix_patch_size=None,  # Specify to fix to 16, 32, 48, 64, 96, 128, 192
+    patch_size_jump=None  # Specify to 'odd' or 'even'
+)
 ```
-ratio_strategy (default is 'loop')
-    1.	decay ('decay' or 'ratio-decay'):
-        This strategy is a basic curriculum plan that reduce the fix-position-ratio linearly.
-        It manages the fix-position ratio plan in the epochs after the warmup_epochs.
-    2.	loss-driven ('loss_hold' or 'loss_back'):
-        This strategy dynamically adjusts the fix-position-ratio curriculum based on the
-        loss performance on the current epoch after warmup_epochs.
-        Firstly, When the loss value l is less than the given threshold T,
-        it indicates that the model has sufficiently learned the current complexity.
-        Such a case suggests that the current shuffling need to be more complex 
-        than the current curriculum plan. Therefore, we increase difficulty by 
-        reducing the fix-position ratio following the ratio_floor_factor.
-        On the contrary, when the loss value l exceeds the expected threshold T, it suggests that 
-        the current complexity is too hard for the model. We employ two strategies 
-        ('loss_hold' or 'loss_back') to control the schedule. 
-        The first is the loss-hold strategy, which keeps the fix-position ratio unchanged 
-        in the next epoch and continues to learn the current curriculum. 
-        The second is the loss-back strategy, which reduces the complexity by setting it 10% higher 
-        than the current curriculum plan. 
+
+#### Patch Strategy (default is 'loop'):
+
+1. **linear**: 
+   - Adjusts the patch size from small to large, managing the fix-position ratio plan after the warmup epochs.
+
+2. **reverse**: 
+   - Adjusts the patch size from large to small, managing the fix-position ratio plan after the warmup epochs.
+
+3. **random**: 
+   - Randomly chooses a specific patch size for each epoch.
+
+4. **loop**: 
+   - Tunes the patch size from small to large in a loop (e.g., a loop of 7 epochs through the patch size list), changing the patch size at most once every epoch.
+
+5. **loss-driven** ('loss_hold' or 'loss_back'):
+   - Follows the reverse method but fixes the patch size if the loss-driven strategy is activated. This maintains the shuffling with instances at the same scale, guiding the model to learn the same or more fixed patches, reducing complexity by introducing fewer outer-sample instances.
+
+```python
+fix_position_ratio_scheduler = ratio_scheduler(
+    total_epochs=num_epochs,
+    warmup_epochs=warmup_epochs,
+    basic_ratio=0.5,
+    strategy=ratio_strategy,  # 'linear'
+    threshold=loss_drive_threshold,
+    fix_position_ratio=None  # Specify to fix
+)
+```
+
+#### Ratio Strategy (default is 'loop'):
+
+1. **decay** ('decay' or 'ratio-decay'):
+   - A basic curriculum plan that reduces the fix-position ratio linearly, managing the fix-position ratio plan after the warmup epochs.
+
+2. **loss-driven** ('loss_hold' or 'loss_back'):
+   - Dynamically adjusts the fix-position ratio based on the loss performance after the warmup epochs.
+     - If the loss value `l` is less than the threshold `T`, indicating sufficient learning of the current complexity, the shuffling complexity is increased by reducing the fix-position ratio following the `ratio_floor_factor`.
+     - If the loss value `l` exceeds the threshold `T`, indicating that the current complexity is too high, two strategies are employed:
+       - **loss-hold**: Keeps the fix-position ratio unchanged in the next epoch, continuing with the current curriculum.
+       - **loss-back**: Reduces complexity by setting the fix-position ratio 10% higher than the current curriculum plan.
+
+This setup ensures that the augmentation strategies dynamically adapt to the training process, optimizing learning efficiency and performance.
 
 
 ### STEP 3: apply the augmentations in the training loop:
