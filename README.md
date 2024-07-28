@@ -16,16 +16,20 @@ Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 org
 
 ## USAGE (plug-and-play)
 You can import the whole set from pip [pip install CellMix]
-
+```Python
+from CellMix.online_augmentations import get_online_augmentation
+from CellMix.schedulers import ratio_scheduler, patch_scheduler
+```
 or download github repo from [[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils)]
+```Python
+from utils.online_augmentations import get_online_augmentation
+from utils.schedulers import ratio_scheduler, patch_scheduler
+```
 
 This is a pseudo-code demo for how to use CellMix online data augmentation
 
 ### STEP 1: set up the Augmentation for triggering online data augmentation in training
 ```Python
-from online_augmentations import get_online_augmentation
-from schedulers import ratio_scheduler, patch_scheduler
-
 Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        p=0.5,  # this is the triggering chance of activation
                                        class_num=2,
@@ -112,7 +116,7 @@ if phase == 'train':
         augment_images, augment_labels, GT_long_labels = Augmentation(inputs, labels)
 ```
 
-### to force-triggering the data augmentation (such as visulization), you can use act=True
+### To force-triggering the data augmentation (such as visulization), you can use act=True
 ```Python
 augment_images, augment_labels, GT_long_labels = Augmentation(inputs, labels, act=True)
 ```
