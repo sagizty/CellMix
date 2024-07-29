@@ -19,7 +19,7 @@ Augmentation = get_online_augmentation(augmentation_name='CellMix',
 # STEP 2: Set Up the loss for learning, we use SoftCrossEntropy for classification task
 loss_func = SoftCrossEntropy() # this one is CrossEntropy for soft-label
 
-# STEP 2: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
+# STEP 3: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
 puzzle_patch_size_scheduler = patch_scheduler(total_epochs=num_epochs,
                                               warmup_epochs=warmup_epochs,
                                               edge_size=224,
@@ -83,7 +83,7 @@ ratio_strategy (default is 'loop')
         than the current curriculum plan. 
 '''
 
-# STEP 3: Apply the augmentations in the training loop:
+# STEP 4: Apply the augmentations in the training loop:
 if phase == 'train':
     # cellmix
     if fix_position_ratio_scheduler is not None and puzzle_patch_size_scheduler is not None:
