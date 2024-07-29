@@ -17,11 +17,13 @@ You can import the whole set from pip [pip install CellMix]
 ```Python
 from CellMix.online_augmentations import get_online_augmentation
 from CellMix.schedulers import ratio_scheduler, patch_scheduler
+from SoftCrossEntropyLoss import SoftCrossEntropy
 ```
 or download github repo from [[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils)]
 ```Python
 from utils.online_augmentations import get_online_augmentation
 from utils.schedulers import ratio_scheduler, patch_scheduler
+from utils.SoftCrossEntropyLoss import SoftCrossEntropy
 ```
 
 This is a pseudo-code demo for how to use CellMix online data augmentation
@@ -46,7 +48,17 @@ augmentation_name: name of data-augmentation method, this repo supports:
 
 <img width="1291" alt="CAM_augmented_Appendix" src="https://github.com/user-attachments/assets/3dccb8c3-de2e-4bba-a79b-ae54fc9537e8">
 
-### STEP 2: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
+When the Augmentation is called, it will return three tensor: 
+- augment_images (Batch, C, H, W), 
+- augment_labels (Batch, Class_num) soft-label (expected confidence for each category)
+- GT_long_labels (Batch) long-int tensor for classification recording (determind by the highest category in soft-label)
+
+### STEP 2: Set Up the loss for learning, we use SoftCrossEntropy for classification task
+```Python
+loss_func = SoftCrossEntropy() # this one is CrossEntropy for soft-label
+```
+
+### STEP 3: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
 <img width="806" alt="LossDrive_Structure" src="https://github.com/user-attachments/assets/4b51c7e5-7d16-4989-9514-3c626a6b25ab">
 
 #### Patch Strategy (default is 'loop'):
@@ -102,7 +114,7 @@ fix_position_ratio_scheduler = ratio_scheduler(
 This setup ensures that the augmentation strategies dynamically adapt to the training process, optimizing learning efficiency and performance.
 
 
-### STEP 3: Apply the augmentations in the training loop:
+### STEP 4: Apply the augmentations in the training loop:
 ```Python
 if phase == 'train':
     # cellmix
