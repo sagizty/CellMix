@@ -1,6 +1,8 @@
 # This is a pseudo-code demo for how to use CellMix online data augmentation
 from online_augmentations import get_online_augmentation
 from schedulers import ratio_scheduler, patch_scheduler
+from SoftCrossEntropyLoss import SoftCrossEntropy
+
 
 # STEP 1: Set up the Augmentation for triggering online data augmentation in training
 Augmentation = get_online_augmentation(augmentation_name='CellMix',
@@ -9,6 +11,13 @@ Augmentation = get_online_augmentation(augmentation_name='CellMix',
                                        batch_size=4,
                                        edge_size=224,
                                        device='cpu')
+# when the Augmentation is called, it will return three tensor: 
+# augment_images (Batch, C, H, W), 
+# augment_labels (Batch, Class_num) soft-label (expected confidence for each category)
+# GT_long_labels (Batch) long-int tensor for classification recording (determind by the highest category in soft-label)
+
+# STEP 2: Set Up the loss for learning, we use SoftCrossEntropy for classification task
+loss_func = SoftCrossEntropy() # this one is CrossEntropy for soft-label
 
 # STEP 2: Set Up the dynamic (self-paced curriclum learning) schedulers for Online Data Augmentation During Training
 puzzle_patch_size_scheduler = patch_scheduler(total_epochs=num_epochs,
