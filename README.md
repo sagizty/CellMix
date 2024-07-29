@@ -117,6 +117,7 @@ This setup ensures that the augmentation strategies dynamically adapt to the tra
 ### STEP 4: Apply the augmentations in the training loop:
 ```Python
 if phase == 'train':
+    # STEP 4.a. data augmentation
     # cellmix
     if fix_position_ratio_scheduler is not None and puzzle_patch_size_scheduler is not None:
         # epoch, epoch_loss is for the dynamic design in cellmix
@@ -131,15 +132,37 @@ if phase == 'train':
     # Counterpart augmentations
     else:
         augment_images, augment_labels, GT_long_labels = Augmentation(inputs, labels)
+
+    # STEP 4.b. forward
+    # track grad if only in train!
+    with torch.set_grad_enabled(phase == 'train'):
+
+        outputs = model(augment_images)  # pred outputs of confidence: [B,CLS]
+        _, preds = torch.max(outputs, 1)  # idx outputs: [B] each is a idx
+        loss = loss_func(outputs, augment_labels)  # cross entrphy of one-hot outputs: [B,CLS] and idx label [B]
+
+        # STEP 4.b. log and backward
+        # log criteria: update
+        log_running_loss += loss.item()
+        running_loss += loss.item() * augment_images.size(0)
+        running_corrects += torch.sum(preds.cpu() == GT_long_labels.cpu().data)
+
+        # backward + optimize only if in training phase
+        if phase == 'train':
+            loss.backward()
+            optimizer.step()
 ```
+
+### STEP 5: update the loss for loss-driven design to adjust the curriculum
+```Python
+epoch_loss = running_loss / dataset_sizes[phase]  # loss-per-sample at this epoch
+```
+To apply the dynamicaly self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
 
 ### To force-triggering the data augmentation (such as visulization), you can use act=True
 ```Python
 augment_images, augment_labels, GT_long_labels = Augmentation(inputs, labels, act=True)
 ```
-
-To apply the dynamicaly self-pased curriculum learning, you can refer to our training demo in [[`training`](https://github.com/sagizty/CellMix/blob/main/Train.py)]
-
 
 # Citation
 @article{zhang2023cellmix,
