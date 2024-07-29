@@ -1,5 +1,5 @@
 """
-Online Augmentations    Feb 7th 2024  12:00
+Online Augmentations    Jul 29th 2024  13:00
 ref:
 CutOut, Mixup, CutMix based on
 https://blog.csdn.net/cp1314971/article/details/106612060
@@ -15,6 +15,44 @@ from torchvision.transforms import ToPILImage, ToTensor
 from utils.visual_usage import patchify, unpatchify
 from utils.fmix import sample_mask, FMixBase  # Fmix
 
+
+def generate_demo_color_chunks(class_num):
+    """
+    Generate k tensor images of different colors and corresponding labels.
+
+    Args:
+        class_num (int): The number of color chunks to generate.
+
+    Returns:
+        color_img_tensor (torch.Tensor): A tensor of shape (k, 3, 224, 224) containing the color images.
+        color_img_tensor_label (torch.Tensor): A tensor of shape (k,) containing the labels.
+    """
+    # Define 10 different colors
+    predefined_colors = [
+        [1.0, 0.0, 0.0],  # Red
+        [1.0, 1.0, 0.0],  # Yellow
+        [0.0, 1.0, 0.0],  # Green
+        [0.0, 0.0, 1.0],  # Blue
+        [1.0, 0.0, 1.0],  # Magenta
+        [0.0, 1.0, 1.0],  # Cyan
+        [0.5, 0.5, 0.0],  # Olive
+        [0.5, 0.0, 0.5],  # Purple
+        [0.0, 0.5, 0.5],  # Teal
+        [0.5, 0.5, 0.5],  # Gray
+    ]
+
+    # Ensure we don't exceed the number of predefined colors
+    assert class_num <= len(predefined_colors), "class_num exceeds the number of predefined colors"
+
+    color_img_tensor = torch.zeros((class_num, 3, 224, 224))
+    color_img_tensor_label = torch.arange(1, class_num + 1, dtype=torch.long)
+    
+    for i in range(class_num):
+        color = torch.tensor(predefined_colors[i]).view(3, 1, 1)
+        color_img_tensor[i] = color.expand(3, 224, 224)
+        
+    return color_img_tensor, color_img_tensor_label
+    
 
 # generate random bounding box
 def rand_bbox(size, lam):
@@ -627,9 +665,7 @@ if __name__ == '__main__':
 
     '''
     # a demo tensor of 4 color chucks
-    x = torch.load("./demo-tensors/color.pt")
-    # print(x.shape)
-    label = torch.load("./demo-tensors/color_labels.pt")
+    x,label = generate_demo_color_chunks(class_num=4)
     # print(label)
 
     # Augmentation = get_online_augmentation('ResizeMix', p=0.5, class_num=2)
