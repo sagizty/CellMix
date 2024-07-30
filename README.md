@@ -19,9 +19,7 @@ pip install CellMix
 ```
 
 ```Python
-from CellMix.online_augmentations import get_online_augmentation
-from CellMix.schedulers import ratio_scheduler, patch_scheduler
-from SoftCrossEntropyLoss import SoftCrossEntropy
+from CellMix import get_online_augmentation, ratio_scheduler, patch_scheduler, SoftCrossEntropy
 ```
 or download github repo from [[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils)]
 ```Python
