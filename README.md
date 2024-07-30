@@ -1,5 +1,5 @@
 # CellMix
-[[`plug-in`](https://github.com/sagizty/CellMix/blob/main/utils/online_augmentations.py)] [[`Demo`](https://github.com/sagizty/CellMix/blob/main/CellMix%20Demo.ipynb)] [[`Paper`](https://arxiv.org/abs/2301.11513)] [[`BibTeX`](#Citation)]
+[[`pip`](https://pypi.org/project/CellMix/)] [[`Demo`](https://github.com/sagizty/CellMix/blob/main/CellMix%20Demo.ipynb)] [[`Paper`](https://arxiv.org/abs/2301.11513)] [[`BibTeX`](#Citation)]
 
 ## Introduction
 Pathological image analysis, enhanced by deep learning, is critical for advancing diagnostic accuracy and improving patient outcomes. These images contain biomedical objects, or "instances," such as cells, tissues, and other structures across multiple scales. Their identities and spatial relationships significantly influence classification performance.
@@ -13,7 +13,11 @@ Extensive experiments on 11 pathological datasets, covering 8 diseases and 9 org
 <img width="1505" alt="CellMix_Structure" src="https://github.com/user-attachments/assets/7a47c014-0e15-4fb8-94ac-feebbced8a47">
 
 ## USAGE (plug-and-play)
-You can import the whole set from pip [pip install CellMix]
+You can import the whole set from [[`pip`](https://pypi.org/project/CellMix/)]
+```Shell
+pip install CellMix
+```
+
 ```Python
 from CellMix.online_augmentations import get_online_augmentation
 from CellMix.schedulers import ratio_scheduler, patch_scheduler
