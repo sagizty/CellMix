@@ -111,7 +111,7 @@ if phase == 'train':
         # STEP 4.b. log and backward
         # log criteria: update
         log_running_loss += loss.item()
-        running_loss += loss.item() * augment_images.size(0)
+        running_loss += loss.item()
         running_corrects += torch.sum(preds.cpu() == GT_long_labels.cpu().data)
 
         # backward + optimize only if in training phase
