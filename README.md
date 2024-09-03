@@ -1,6 +1,7 @@
 # CellMix
 [[`pip`](https://pypi.org/project/CellMix/)] [[`pip_usage`](https://drive.google.com/file/d/1KluykahydUSeuQwJJAPEqRZf4_n_AMp6/view?usp=sharing)] 
 [[`Paper_Demo`](https://github.com/sagizty/CellMix/blob/main/CellMix%20Demo.ipynb)] [[`Paper`](https://arxiv.org/abs/2301.11513)] [[`BibTeX`](#Citation)]
+[[`Vidio Presentation`](https://www.bilibili.com/video/BV1uzHCeQESC)]
 
 ## Introduction
 Pathological image analysis, enhanced by deep learning, is critical for advancing diagnostic accuracy and improving patient outcomes. These images contain biomedical objects, or "instances," such as cells, tissues, and other structures across multiple scales. Their identities and spatial relationships significantly influence classification performance.
